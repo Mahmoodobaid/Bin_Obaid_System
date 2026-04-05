@@ -1,29 +1,23 @@
-# Python
-__pycache__/
-*.pyc
-*.pyo
-.env.local
-venv/
-env/
-
-# Flutter
-.DS_Store
-.dart_tool/
-.pub/
-build/
-*.apk
-*.aab
-
-# IDE
-.vscode/
-.idea/
-*.swp
-
-# Logs
-*.log
-versions_log.json
-
-# Sensitive
+# ملفات البيئة السرية
+.env
+backend/.env
 credentials.json
-*.pem
-*.key
+backend/credentials.json
+
+# ملفات بايثون المؤقتة
+__pycache__/
+*.py[cod]
+*.class
+
+# ملفات Flutter والمجلدات
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+ios/Flutter/Generated.xcconfig
+android/key.properties
+
+# ملفات نظام التشغيل
+.DS_Store
+Thumbs.db
