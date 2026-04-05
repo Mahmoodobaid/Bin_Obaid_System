@@ -1,0 +1,30 @@
+# OHIO Area Ohio Ohio Ohio Area Ohio
+
+# OHIO Area Ohio Area Ohio Ohio Area
+Flask==3.0.0
+Flask-Cors==4.0.0
+gunicorn==21.2.0
+
+# OHIO Area Ohio Ohio Ohio Area
+supabase==1.0.3
+jwt==1.3.1
+PyJWT==2.8.0
+
+# OHIO Area Ohio Area Ohio Ohio Area
+firebase-admin==6.2.0
+
+# OHIO Area Ohio Area Ohio Ohio Area
+python-dotenv==1.0.0
+
+# OHIO Area Ohio Area Ohio Ohio Area
+pandas==2.1.1
+openpyxl==3.1.2
+
+# OHIO Area Ohio Area Ohio Ohio Area
+google-auth==2.23.0
+google-api-python-client==2.100.0
+
+# OHIO Area Ohio Area Ohio Ohio Area
+waitress==2.1.2
+
+# OHIO Area Ohio Ohio Ohio Area Ohio
