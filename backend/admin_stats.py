@@ -1,0 +1,406 @@
+# =====================================================
+# admin_stats.py - إحصائيات وتقارير متقدمة للوحة التحكم
+# الإصدار 2.0 - مع دعم التخزين المؤقت، التصدير، والتحليلات الزمنية
+# =====================================================
+
+import logging
+from datetime import datetime, timedelta
+from collections import defaultdict
+from flask import Blueprint, request, jsonify
+from decorators import login_required, role_required
+from models import ProductModel, UserModel, QuoteModel, PromotionModel, ImageModel
+from supabase import create_client
+from config import Config
+import pandas as pd
+from io import BytesIO
+import base64
+import json
+import os
+
+logger = logging.getLogger(__name__)
+supabase = create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
+
+stats_bp = Blueprint('admin_stats', __name__)
+
+# ============= التخزين المؤقت البسيط (In-Memory Cache) =============
+_cache = {}
+_cache_expiry = {}
+
+def cached(ttl_seconds=300):
+    """ديكوراتور لتخزين نتائج الدوال مؤقتاً"""
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            key = f"{func.__name__}:{str(args)}:{str(kwargs)}"
+            now = datetime.utcnow()
+            if key in _cache and _cache_expiry.get(key, now) > now:
+                return _cache[key]
+            result = func(*args, **kwargs)
+            _cache[key] = result
+            _cache_expiry[key] = now + timedelta(seconds=ttl_seconds)
+            return result
+        return wrapper
+    return decorator
+
+def invalidate_stats_cache():
+    """مسح التخزين المؤقت للإحصائيات"""
+    global _cache, _cache_expiry
+    _cache.clear()
+    _cache_expiry.clear()
+    logger.info("Statistics cache invalidated")
+
+# ============= إحصائيات المبيعات الزمنية =============
+
+@stats_bp.route('/admin/stats/sales/timeline', methods=['GET'])
+@login_required
+@role_required(['admin'])
+@cached(ttl_seconds=300)
+def sales_timeline():
+    """إحصائيات يومية لعروض الأسعار خلال عدد محدد من الأيام"""
+    try:
+        days = request.args.get('days', 30, type=int)
+        start_date = datetime.utcnow() - timedelta(days=days)
+        
+        result = supabase.table('quotes') \
+            .select('created_at, total_amount') \
+            .gte('created_at', start_date.isoformat()) \
+            .execute()
+        
+        daily_counts = defaultdict(int)
+        daily_totals = defaultdict(float)
+        
+        for row in result.data:
+            date_str = row['created_at'][:10]
+            daily_counts[date_str] += 1
+            daily_totals[date_str] += float(row['total_amount'] or 0)
+        
+        dates = sorted(daily_counts.keys())
+        return jsonify({
+            'dates': dates,
+            'counts': [daily_counts[d] for d in dates],
+            'totals': [daily_totals[d] for d in dates]
+        }), 200
+    except Exception as e:
+        logger.error(f"Error in sales_timeline: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@stats_bp.route('/admin/stats/sales/monthly', methods=['GET'])
+@login_required
+@role_required(['admin'])
+@cached(ttl_seconds=600)
+def sales_monthly():
+    """إحصائيات شهرية لعروض الأسعار (آخر 12 شهراً)"""
+    try:
+        end_date = datetime.utcnow()
+        start_date = end_date - timedelta(days=365)
+        
+        result = supabase.table('quotes') \
+            .select('created_at, total_amount') \
+            .gte('created_at', start_date.isoformat()) \
+            .execute()
+        
+        monthly_counts = defaultdict(int)
+        monthly_totals = defaultdict(float)
+        
+        for row in result.data:
+            month_str = row['created_at'][:7]
+            monthly_counts[month_str] += 1
+            monthly_totals[month_str] += float(row['total_amount'] or 0)
+        
+        months = sorted(monthly_counts.keys())
+        return jsonify({
+            'months': months,
+            'counts': [monthly_counts[m] for m in months],
+            'totals': [monthly_totals[m] for m in months]
+        }), 200
+    except Exception as e:
+        logger.error(f"Error in sales_monthly: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+# ============= المنتجات الأكثر طلباً =============
+
+@stats_bp.route('/admin/stats/top-products', methods=['GET'])
+@login_required
+@role_required(['admin'])
+@cached(ttl_seconds=600)
+def top_products():
+    """المنتجات الأكثر طلباً حسب الكمية"""
+    try:
+        limit = request.args.get('limit', 10, type=int)
+        days = request.args.get('days', 30, type=int)
+        start_date = datetime.utcnow() - timedelta(days=days)
+        
+        result = supabase.table('quote_items') \
+            .select('product_sku, quantity, quotes(created_at)') \
+            .gte('quotes.created_at', start_date.isoformat()) \
+            .execute()
+        
+        product_qty = defaultdict(int)
+        for item in result.data:
+            sku = item['product_sku']
+            qty = item['quantity']
+            product_qty[sku] += qty
+        
+        sorted_products = sorted(product_qty.items(), key=lambda x: x[1], reverse=True)[:limit]
+        
+        top_list = []
+        for sku, qty in sorted_products:
+            product = ProductModel.get_by_sku(sku)
+            name = product['name'] if product else sku
+            price = product['unit_price'] if product else 0
+            top_list.append({
+                'sku': sku,
+                'name': name,
+                'total_quantity': qty,
+                'total_value': qty * price
+            })
+        
+        return jsonify(top_list), 200
+    except Exception as e:
+        logger.error(f"Error in top_products: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+# ============= العملاء الأكثر نشاطاً =============
+
+@stats_bp.route('/admin/stats/top-customers', methods=['GET'])
+@login_required
+@role_required(['admin'])
+@cached(ttl_seconds=600)
+def top_customers():
+    """العملاء الذين قدموا أكبر عدد من الطلبات"""
+    try:
+        limit = request.args.get('limit', 10, type=int)
+        days = request.args.get('days', 30, type=int)
+        start_date = datetime.utcnow() - timedelta(days=days)
+        
+        result = supabase.table('quotes') \
+            .select('user_id, total_amount') \
+            .gte('created_at', start_date.isoformat()) \
+            .execute()
+        
+        user_counts = defaultdict(int)
+        user_totals = defaultdict(float)
+        
+        for row in result.data:
+            uid = row['user_id']
+            user_counts[uid] += 1
+            user_totals[uid] += float(row['total_amount'] or 0)
+        
+        sorted_users = sorted(user_counts.items(), key=lambda x: x[1], reverse=True)[:limit]
+        
+        top_list = []
+        for uid, count in sorted_users:
+            user = UserModel.get_by_id(uid)
+            if user:
+                top_list.append({
+                    'user_id': uid,
+                    'email': user.get('email'),
+                    'full_name': user.get('full_name', ''),
+                    'quote_count': count,
+                    'total_spent': user_totals[uid]
+                })
+        
+        return jsonify(top_list), 200
+    except Exception as e:
+        logger.error(f"Error in top_customers: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+# ============= المنتكات ذات المخزون المنخفض =============
+
+@stats_bp.route('/admin/stats/low-stock', methods=['GET'])
+@login_required
+@role_required(['admin'])
+@cached(ttl_seconds=1800)
+def low_stock():
+    """المنتكات ذات المخزون المنخفض (تنبيه)"""
+    try:
+        threshold = request.args.get('threshold', 10, type=int)
+        products = ProductModel.get_all(limit=10000)
+        low = [
+            {
+                'sku': p['sku'],
+                'name': p['name'],
+                'quantity_in_stock': p.get('quantity_in_stock', 0),
+                'unit_price': p.get('unit_price', 0)
+            }
+            for p in products if p.get('quantity_in_stock', 0) <= threshold
+        ]
+        return jsonify(low), 200
+    except Exception as e:
+        logger.error(f"Error in low_stock: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+# ============= إحصائيات المستخدمين =============
+
+@stats_bp.route('/admin/stats/users/growth', methods=['GET'])
+@login_required
+@role_required(['admin'])
+@cached(ttl_seconds=600)
+def user_growth():
+    """نمو المستخدمين خلال الفترة المحددة"""
+    try:
+        days = request.args.get('days', 30, type=int)
+        start_date = datetime.utcnow() - timedelta(days=days)
+        
+        result = supabase.table('users') \
+            .select('created_at') \
+            .gte('created_at', start_date.isoformat()) \
+            .execute()
+        
+        daily_users = defaultdict(int)
+        for row in result.data:
+            date_str = row['created_at'][:10]
+            daily_users[date_str] += 1
+        
+        dates = sorted(daily_users.keys())
+        cumulative = []
+        total = 0
+        for d in dates:
+            total += daily_users[d]
+            cumulative.append(total)
+        
+        return jsonify({
+            'dates': dates,
+            'daily': [daily_users[d] for d in dates],
+            'cumulative': cumulative
+        }), 200
+    except Exception as e:
+        logger.error(f"Error in user_growth: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+# ============= إحصائيات الأداء =============
+
+@stats_bp.route('/admin/stats/conversion-rate', methods=['GET'])
+@login_required
+@role_required(['admin'])
+@cached(ttl_seconds=600)
+def conversion_rate():
+    """نسبة تحويل عروض الأسعار (approved / total)"""
+    try:
+        total = QuoteModel.count_all()
+        approved = QuoteModel.count_by_status('approved')
+        pending = QuoteModel.count_by_status('pending')
+        rejected = QuoteModel.count_by_status('rejected')
+        
+        conversion = (approved / total * 100) if total > 0 else 0
+        
+        return jsonify({
+            'total_quotes': total,
+            'approved_quotes': approved,
+            'pending_quotes': pending,
+            'rejected_quotes': rejected,
+            'conversion_rate': round(conversion, 2)
+        }), 200
+    except Exception as e:
+        logger.error(f"Error in conversion_rate: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+# ============= تصدير التقارير =============
+
+@stats_bp.route('/admin/stats/export/quotes-csv', methods=['GET'])
+@login_required
+@role_required(['admin'])
+def export_quotes_csv():
+    """تصدير عروض الأسعار إلى ملف CSV"""
+    try:
+        days = request.args.get('days', 30, type=int)
+        start_date = datetime.utcnow() - timedelta(days=days)
+        
+        result = supabase.table('quotes') \
+            .select('id, user_id, total_amount, status, created_at') \
+            .gte('created_at', start_date.isoformat()) \
+            .order('created_at', desc=True) \
+            .execute()
+        
+        if not result.data:
+            return jsonify({'error': 'لا توجد بيانات'}), 404
+        
+        df = pd.DataFrame(result.data)
+        df['created_at'] = pd.to_datetime(df['created_at'])
+        
+        user_ids = df['user_id'].unique()
+        user_names = {}
+        for uid in user_ids:
+            user = UserModel.get_by_id(uid)
+            user_names[uid] = user.get('full_name', user['email']) if user else uid
+        df['customer_name'] = df['user_id'].map(user_names)
+        
+        df = df[['id', 'customer_name', 'total_amount', 'status', 'created_at']]
+        df.columns = ['رقم العرض', 'العميل', 'المبلغ', 'الحالة', 'التاريخ']
+        
+        output = BytesIO()
+        df.to_csv(output, index=False, encoding='utf-8-sig')
+        output.seek(0)
+        b64 = base64.b64encode(output.read()).decode('utf-8')
+        return jsonify({'csv_base64': b64}), 200
+    except Exception as e:
+        logger.error(f"Error in export_quotes_csv: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@stats_bp.route('/admin/stats/export/products-csv', methods=['GET'])
+@login_required
+@role_required(['admin'])
+def export_products_csv():
+    """تصدير جميع المنتجات إلى ملف CSV"""
+    try:
+        products = ProductModel.get_all(limit=10000)
+        df = pd.DataFrame(products)
+        
+        columns = ['sku', 'name', 'category', 'quantity_in_stock', 'unit_price']
+        existing_cols = [c for c in columns if c in df.columns]
+        df = df[existing_cols]
+        df.columns = ['SKU', 'الاسم', 'الفئة', 'الكمية', 'السعر']
+        
+        output = BytesIO()
+        df.to_csv(output, index=False, encoding='utf-8-sig')
+        output.seek(0)
+        b64 = base64.b64encode(output.read()).decode('utf-8')
+        return jsonify({'csv_base64': b64}), 200
+    except Exception as e:
+        logger.error(f"Error in export_products_csv: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+# ============= لوحة تحكم سريعة =============
+
+@stats_bp.route('/admin/stats/dashboard-data', methods=['GET'])
+@login_required
+@role_required(['admin'])
+@cached(ttl_seconds=60)
+def admin_dashboard_stats():
+    """إحصائيات سريعة للوحة التحكم الرئيسية"""
+    try:
+        today = datetime.utcnow().date()
+        week_ago = today - timedelta(days=7)
+        
+        today_quotes = supabase.table('quotes') \
+            .select('id', count='exact') \
+            .gte('created_at', today.isoformat()) \
+            .execute()
+        
+        week_quotes = supabase.table('quotes') \
+            .select('total_amount') \
+            .gte('created_at', week_ago.isoformat()) \
+            .execute()
+        
+        week_total = sum(float(q.get('total_amount', 0)) for q in week_quotes.data)
+        
+        return jsonify({
+            'today_quotes': today_quotes.count,
+            'week_quotes_count': len(week_quotes.data),
+            'week_revenue': week_total,
+            'total_products': ProductModel.count_all(),
+            'total_customers': UserModel.count_by_role('customer'),
+            'pending_approval': ImageModel.count_pending()
+        }), 200
+    except Exception as e:
+        logger.error(f"Error in dashboard_stats: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+# ============= تحديث التخزين المؤقت يدوياً =============
+
+@stats_bp.route('/admin/stats/refresh-data', methods=['POST'])
+@login_required
+@role_required(['admin'])
+def refresh_stats_data():
+    """مسح التخزين المؤقت للإحصائيات"""
+    invalidate_stats_cache()
+    return jsonify({'message': 'تم تحديث جميع الإحصائيات'}), 200

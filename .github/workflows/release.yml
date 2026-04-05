@@ -1,0 +1,112 @@
+# =====================================================
+# release.yml - بناء APK آلياً عند دفع tag جديد إلى GitHub
+# =====================================================
+
+name: Build and Release APK
+
+on:
+  push:
+    tags:
+      - 'v*'           # يشتغل عند دفع tag مثل v1.0.0, v1.0.1, v2.0.0
+  workflow_dispatch:   # يسمح بالتشغيل اليدوي من واجهة GitHub
+
+jobs:
+  build:
+    name: Build APK
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. تحميل الكود من المستودع
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. إعداد Java (مطلوب لـ Flutter)
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      # 3. إعداد Flutter SDK
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.16.0'
+          channel: 'stable'
+
+      # 4. تثبيت التبعيات
+      - name: Install dependencies
+        run: flutter pub get
+        working-directory: frontend/bin_obeid_customer
+
+      # 5. تحليل الكود (اختياري)
+      - name: Analyze code
+        run: flutter analyze
+        working-directory: frontend/bin_obeid_customer
+        continue-on-error: true
+
+      # 6. بناء APK للإصدار (release)
+      - name: Build APK
+        run: flutter build apk --release
+        working-directory: frontend/bin_obeid_customer
+
+      # 7. بناء APK مقسم (للملفات الأصغر - اختياري)
+      - name: Build split APKs
+        run: flutter build apk --split-per-abi
+        working-directory: frontend/bin_obeid_customer
+
+      # 8. إنشاء الإصدار على GitHub
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: الإصدار ${{ github.ref_name }}
+          body: |
+            ## تحديث جديد لتطبيق بن عبيد
+
+            ### التغييرات في هذا الإصدار:
+            - تحسينات في الأداء
+            - إصلاح بعض المشاكل
+            - إضافة ميزات جديدة
+
+            ### كيفية التثبيت:
+            1. قم بتحميل ملف APK المناسب لجهازك
+            2. افتح الملف واسمح بالتثبيت من مصادر غير معروفة
+            3. اتبع التعليمات لإكمال التثبيت
+
+            ### روابط التحميل:
+            - **universal APK**: مناسب لجميع الأجهزة
+            - **arm64-v8a**: لأجهزة Android 64-bit (معظم الأجهزة الحديثة)
+            - **armeabi-v7a**: للأجهزة القديمة 32-bit
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 9. رفع ملفات APK إلى الإصدار
+      - name: Upload Universal APK
+        uses: softprops/action-gh-release@v1
+        with:
+          files: frontend/bin_obeid_customer/build/app/outputs/flutter-apk/app-release.apk
+          tag_name: ${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload arm64-v8a APK
+        uses: softprops/action-gh-release@v1
+        with:
+          files: frontend/bin_obeid_customer/build/app/outputs/apk/release/app-arm64-v8a-release.apk
+          tag_name: ${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+      - name: Upload armeabi-v7a APK
+        uses: softprops/action-gh-release@v1
+        with:
+          files: frontend/bin_obeid_customer/build/app/outputs/apk/release/app-armeabi-v7a-release.apk
+          tag_name: ${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true

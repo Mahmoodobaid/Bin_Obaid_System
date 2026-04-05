@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الإعدادات - بن عبيد</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * { font-family: 'Cairo', 'Tahoma', sans-serif; }
+        body { background-color: #f8f9fc; }
+        .sidebar { position: fixed; top: 0; right: 0; height: 100%; width: 280px; background: linear-gradient(135deg, #1e3c72, #2a5298); color: white; padding: 20px; z-index: 1000; }
+        .sidebar .logo { text-align: center; padding: 20px 0; border-bottom: 1px solid rgba(255,255,255,0.2); margin-bottom: 20px; }
+        .sidebar .nav-link { color: rgba(255,255,255,0.8); padding: 12px 15px; border-radius: 10px; display: flex; align-items: center; gap: 12px; text-decoration: none; }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active { background: rgba(255,255,255,0.2); color: white; }
+        .main-content { margin-right: 280px; padding: 20px; }
+        .card { border: none; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .card-header { background: white; border-bottom: 1px solid #e9ecef; padding: 15px 20px; font-weight: bold; border-radius: 15px 15px 0 0; }
+        .setting-group { border-bottom: 1px solid #e9ecef; padding: 15px 0; }
+        @media (max-width: 768px) { .sidebar { width: 70px; } .sidebar .logo h3, .sidebar .logo p, .sidebar .nav-link span { display: none; } .sidebar .nav-link { justify-content: center; } .main-content { margin-right: 70px; } }
+    </style>
+</head>
+<body>
+<div class="sidebar">
+    <div class="logo"><h3><i class="fas fa-store"></i> بن عبيد</h3><p>نظام إدارة المخازن</p></div>
+    <nav>
+        <a href="dashboard.html" class="nav-link"><i class="fas fa-tachometer-alt"></i><span>لوحة التحكم</span></a>
+        <a href="products.html" class="nav-link"><i class="fas fa-boxes"></i><span>المنتجات</span></a>
+        <a href="promotions.html" class="nav-link"><i class="fas fa-tags"></i><span>الإعلانات</span></a>
+        <a href="templates.html" class="nav-link"><i class="fas fa-file-alt"></i><span>النماذج</span></a>
+        <a href="licenses.html" class="nav-link"><i class="fas fa-key"></i><span>التراخيص</span></a>
+        <a href="profile.html" class="nav-link"><i class="fas fa-user-circle"></i><span>الملف الشخصي</span></a>
+        <a href="settings.html" class="nav-link active"><i class="fas fa-cog"></i><span>الإعدادات</span></a>
+    </nav>
+    <div class="position-absolute bottom-0 start-0 w-100 p-3"><hr style="border-color: rgba(255,255,255,0.2);"><a href="#" onclick="logout()" class="nav-link"><i class="fas fa-sign-out-alt"></i><span>تسجيل خروج</span></a></div>
+</div>
+<div class="main-content">
+    <div class="d-flex justify-content-between align-items-center mb-4"><h2><i class="fas fa-cog"></i> إعدادات النظام</h2><button class="btn btn-success" onclick="saveAllSettings()"><i class="fas fa-save"></i> حفظ جميع الإعدادات</button></div>
+    <div class="card"><div class="card-header"><i class="fas fa-building"></i> معلومات الشركة</div><div class="card-body">
+        <div class="setting-group"><div class="row"><div class="col-md-6"><label>اسم الشركة</label><input type="text" id="company_name" class="form-control"></div><div class="col-md-6"><label>شعار الشركة (URL)</label><input type="url" id="company_logo" class="form-control"></div></div></div>
+        <div class="setting-group"><div class="row"><div class="col-md-6"><label>رقم الهاتف</label><input type="tel" id="contact_phone" class="form-control"></div><div class="col-md-6"><label>البريد الإلكتروني</label><input type="email" id="contact_email" class="form-control"></div></div></div>
+    </div></div>
+    <div class="card"><div class="card-header"><i class="fas fa-image"></i> إعدادات المنتجات والصور</div><div class="card-body">
+        <div class="setting-group"><div class="row"><div class="col-md-6"><label>الحد الأقصى للصور لكل منتج</label><input type="number" id="max_images_per_product" class="form-control" min="1" max="10"></div><div class="col-md-6"><label>مدة التبديل التلقائي للصور (مللي ثانية)</label><input type="number" id="carousel_interval" class="form-control" min="1000" max="10000" step="500"></div></div></div>
+    </div></div>
+    <div class="card"><div class="card-header"><i class="fas fa-lightbulb"></i> إعدادات الإيحاءات الذكية</div><div class="card-body">
+        <div class="setting-group"><div class="row"><div class="col-md-6"><label>الحد الأدنى للكمية الكبيرة</label><input type="number" id="bulk_quantity_threshold" class="form-control" min="1"></div><div class="col-md-6"><label>نص الإيحاء</label><input type="text" id="bulk_suggestion_message" class="form-control"></div></div></div>
+    </div></div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/auth.js"></script>
+<script>
+    async function loadSettings() {
+        try {
+            const settings = await apiRequest('/admin/settings');
+            document.getElementById('company_name').value = settings.company_name || '';
+            document.getElementById('company_logo').value = settings.company_logo || '';
+            document.getElementById('contact_phone').value = settings.contact_phone || '';
+            document.getElementById('contact_email').value = settings.contact_email || '';
+            document.getElementById('max_images_per_product').value = settings.max_images_per_product || 4;
+            document.getElementById('carousel_interval').value = settings.carousel_interval || 4000;
+            document.getElementById('bulk_quantity_threshold').value = settings.bulk_quantity_threshold || 100;
+            document.getElementById('bulk_suggestion_message').value = settings.bulk_suggestion_message || 'متوفر بكمية كبيرة، اطلب كمية إضافية واحصل على خصم';
+        } catch(e) { console.error('خطأ في تحميل الإعدادات', e); alert('فشل تحميل الإعدادات، تأكد من اتصال الخادم.'); }
+    }
+    async function saveAllSettings() {
+        const settings = {
+            company_name: document.getElementById('company_name').value,
+            company_logo: document.getElementById('company_logo').value,
+            contact_phone: document.getElementById('contact_phone').value,
+            contact_email: document.getElementById('contact_email').value,
+            max_images_per_product: parseInt(document.getElementById('max_images_per_product').value),
+            carousel_interval: parseInt(document.getElementById('carousel_interval').value),
+            bulk_quantity_threshold: parseInt(document.getElementById('bulk_quantity_threshold').value),
+            bulk_suggestion_message: document.getElementById('bulk_suggestion_message').value
+        };
+        try { await apiRequest('/admin/settings', 'POST', settings); alert('تم حفظ الإعدادات بنجاح'); loadSettings(); }
+        catch(e) { alert('فشل حفظ الإعدادات'); }
+    }
+    function logout() { localStorage.removeItem('admin_token'); window.location.href = 'index.html'; }
+    window.onload = () => { if (!localStorage.getItem('admin_token')) window.location.href = 'index.html'; else loadSettings(); };
+</script>
+</body>
+</html>

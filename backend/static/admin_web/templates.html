@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة النماذج - بن عبيد</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * { font-family: 'Cairo', 'Tahoma', sans-serif; }
+        body { background-color: #f8f9fc; }
+        
+        .sidebar {
+            position: fixed;
+            top: 0;
+            right: 0;
+            height: 100%;
+            width: 280px;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            padding: 20px;
+            z-index: 1000;
+        }
+        
+        .sidebar .logo {
+            text-align: center;
+            padding: 20px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            margin-bottom: 20px;
+        }
+        
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.8);
+            padding: 12px 15px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+        
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+        
+        .main-content {
+            margin-right: 280px;
+            padding: 20px;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        
+        .card-header {
+            background: white;
+            border-bottom: 1px solid #e9ecef;
+            padding: 15px 20px;
+            font-weight: bold;
+            border-radius: 15px 15px 0 0;
+        }
+        
+        .template-card {
+            transition: transform 0.2s;
+            cursor: pointer;
+        }
+        
+        .template-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .status-active { background: #28a745; color: #fff; }
+        .status-inactive { background: #dc3545; color: #fff; }
+        
+        .item-row {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar { width: 70px; }
+            .sidebar .logo h3, .sidebar .logo p, .sidebar .nav-link span { display: none; }
+            .sidebar .nav-link { justify-content: center; }
+            .main-content { margin-right: 70px; }
+        }
+    </style>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- الشريط الجانبي -->
+<div class="sidebar">
+    <div class="logo">
+        <h3><i class="fas fa-store"></i> بن عبيد</h3>
+        <p>نظام إدارة المخازن</p>
+    </div>
+    <nav>
+        <a href="dashboard.html" class="nav-link"><i class="fas fa-tachometer-alt"></i><span>لوحة التحكم</span></a>
+        <a href="products.html" class="nav-link"><i class="fas fa-boxes"></i><span>المنتجات</span></a>
+        <a href="promotions.html" class="nav-link"><i class="fas fa-tags"></i><span>الإعلانات</span></a>
+        <a href="templates.html" class="nav-link active"><i class="fas fa-file-alt"></i><span>النماذج</span></a>
+        <a href="settings.html" class="nav-link"><i class="fas fa-cog"></i><span>الإعدادات</span></a>
+        <a href="licenses.html" class="nav-link"><i class="fas fa-key"></i><span>التراخيص</span></a>
+    </nav>
+    <div class="position-absolute bottom-0 start-0 w-100 p-3">
+        <hr style="border-color: rgba(255,255,255,0.2);">
+        <a href="#" onclick="logout()" class="nav-link"><i class="fas fa-sign-out-alt"></i><span>تسجيل خروج</span></a>
+    </div>
+</div>
+
+<!-- المحتوى الرئيسي -->
+<div class="main-content">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-file-alt"></i> النماذج الجاهزة للطلبات السريعة</h2>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTemplateModal">
+            <i class="fas fa-plus"></i> نموذج جديد
+        </button>
+    </div>
+
+    <!-- بطاقات إحصائيات سريعة -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="card text-center p-3">
+                <h3 id="totalTemplates">-</h3>
+                <p class="text-muted mb-0">إجمالي النماذج</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center p-3">
+                <h3 id="activeTemplates">-</h3>
+                <p class="text-muted mb-0">نشطة</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center p-3">
+                <h3 id="totalItems">-</h3>
+                <p class="text-muted mb-0">إجمالي الأصناف</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- قائمة النماذج -->
+    <div class="row" id="templatesList">
+        <div class="col-12 text-center py-5">
+            <div class="spinner-border text-primary"></div>
+            <p class="mt-2">جاري التحميل...</p>
+        </div>
+    </div>
+</div>
+
+<!-- مودال إضافة/تعديل نموذج -->
+<div class="modal fade" id="addTemplateModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-plus-circle"></i> نموذج جديد</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="templateForm">
+                    <input type="hidden" id="templateId">
+                    <div class="mb-3">
+                        <label>اسم النموذج <span class="text-danger">*</span></label>
+                        <input type="text" id="templateName" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>الوصف</label>
+                        <textarea id="templateDescription" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label>الأصناف</label>
+                        <div id="itemsList"></div>
+                        <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="addItemRow()">
+                            <i class="fas fa-plus"></i> إضافة صنف
+                        </button>
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" id="templateActive" class="form-check-input" checked>
+                        <label class="form-check-label">نشط</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-primary" onclick="saveTemplate()">حفظ</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- مودال عرض التفاصيل -->
+<div class="modal fade" id="templateDetailModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">تفاصيل النموذج</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="templateDetailBody">
+                <!-- يتم ملؤها ديناميكياً -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                <button type="button" class="btn btn-warning" id="editTemplateBtn" onclick="editTemplate()">تعديل</button>
+                <button type="button" class="btn btn-danger" id="deleteTemplateBtn" onclick="deleteTemplate()">حذف</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/auth.js"></script>
+<script>
+    let currentTemplates = [];
+    let selectedTemplate = null;
+    let itemCounter = 0;
+
+    window.onload = function() {
+        if (!localStorage.getItem('admin_token')) {
+            window.location.href = 'index.html';
+            return;
+        }
+        loadTemplates();
+    };
+
+    async function loadTemplates() {
+        try {
+            const templates = await apiRequest('/admin/templates?include_inactive=true');
+            currentTemplates = templates;
+            
+            const activeCount = templates.filter(t => t.is_active).length;
+            const totalItems = templates.reduce((sum, t) => sum + (t.items?.length || 0), 0);
+            
+            document.getElementById('totalTemplates').innerText = templates.length;
+            document.getElementById('activeTemplates').innerText = activeCount;
+            document.getElementById('totalItems').innerText = totalItems;
+            
+            renderTemplates(templates);
+        } catch(e) {
+            console.error(e);
+            document.getElementById('templatesList').innerHTML = '<div class="col-12 text-center py-5 text-danger">فشل تحميل النماذج</div>';
+        }
+    }
+
+    function renderTemplates(templates) {
+        const container = document.getElementById('templatesList');
+        
+        if (!templates.length) {
+            container.innerHTML = '<div class="col-12 text-center py-5 text-muted">لا توجد نماذج</div>';
+            return;
+        }
+        
+        container.innerHTML = templates.map(template => `
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card template-card h-100" onclick="showTemplateDetail(${template.id})">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h5 class="card-title mb-0">${escapeHtml(template.name)}</h5>
+                            <span class="status-badge ${template.is_active ? 'status-active' : 'status-inactive'}">
+                                ${template.is_active ? 'نشط' : 'غير نشط'}
+                            </span>
+                        </div>
+                        <p class="card-text small text-muted">${escapeHtml(template.description || 'لا يوجد وصف')}</p>
+                        <div class="mt-3">
+                            <small class="text-muted">
+                                <i class="fas fa-boxes"></i> ${template.items?.length || 0} صنف
+                            </small>
+                            <small class="text-muted me-3">
+                                <i class="fas fa-dollar-sign"></i> ${template.estimated_price || 0} ريال
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function showTemplateDetail(templateId) {
+        selectedTemplate = currentTemplates.find(t => t.id === templateId);
+        if (!selectedTemplate) return;
+        
+        const itemsHtml = (selectedTemplate.items || []).map(item => `
+            <div class="item-row">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>${escapeHtml(item.name || item.sku)}</strong>
+                        <div class="small text-muted">SKU: ${item.sku}</div>
+                    </div>
+                    <div>
+                        <span class="badge bg-primary">${item.quantity} قطعة</span>
+                        ${item.is_required ? '<span class="badge bg-danger ms-1">إلزامي</span>' : ''}
+                    </div>
+                </div>
+            </div>
+        `).join('');
+        
+        document.getElementById('templateDetailBody').innerHTML = `
+            <table class="table table-bordered">
+                <tr><td style="width: 35%">الاسم</td><td>${escapeHtml(selectedTemplate.name)}</td></tr>
+                <tr><td>الوصف</td><td>${escapeHtml(selectedTemplate.description || '-')}</td></tr>
+                <tr><td>الحالة</td><td><span class="status-badge ${selectedTemplate.is_active ? 'status-active' : 'status-inactive'}">${selectedTemplate.is_active ? 'نشط' : 'غير نشط'}</span></td></tr>
+                <tr><td>عدد الأصناف</td><td>${selectedTemplate.items?.length || 0}</td></tr>
+                <tr><td>السعر التقريبي</td><td>${selectedTemplate.estimated_price || 0} ريال</td></tr>
+                <tr><td>تاريخ الإنشاء</td><td>${new Date(selectedTemplate.created_at).toLocaleString('ar')}</td></tr>
+                <tr><td colspan="2"><strong>الأصناف:</strong><br>${itemsHtml || '-'}</td></tr>
+            </table>
+        `;
+        
+        new bootstrap.Modal(document.getElementById('templateDetailModal')).show();
+    }
+
+    function addItemRow(sku = '', quantity = 1, name = '', isRequired = true) {
+        const container = document.getElementById('itemsList');
+        const rowId = `item_${itemCounter++}`;
+        
+        const row = document.createElement('div');
+        row.className = 'item-row mb-2';
+        row.id = rowId;
+        row.innerHTML = `
+            <div class="row g-2">
+                <div class="col-md-5">
+                    <input type="text" class="form-control form-control-sm" placeholder="SKU" value="${escapeHtml(sku)}" onblur="fetchProductName(this)">
+                </div>
+                <div class="col-md-4">
+                    <input type="text" class="form-control form-control-sm" placeholder="اسم المنتج" value="${escapeHtml(name)}">
+                </div>
+                <div class="col-md-2">
+                    <input type="number" class="form-control form-control-sm" placeholder="الكمية" value="${quantity}" min="1">
+                </div>
+                <div class="col-md-1">
+                    <button type="button" class="btn btn-sm btn-danger" onclick="removeItemRow('${rowId}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="form-check mt-1">
+                <input type="checkbox" class="form-check-input" ${isRequired ? 'checked' : ''}>
+                <label class="form-check-label small">صنف إلزامي (لا يمكن حذفه عند التطبيق)</label>
+            </div>
+        `;
+        container.appendChild(row);
+    }
+
+    async function fetchProductName(skuInput) {
+        const sku = skuInput.value.trim();
+        if (!sku) return;
+        
+        try {
+            const product = await apiRequest(`/products/${sku}`);
+            if (product && product.name) {
+                const row = skuInput.closest('.item-row');
+                const nameInput = row.querySelector('input[placeholder="اسم المنتج"]');
+                if (nameInput && !nameInput.value) {
+                    nameInput.value = product.name;
+                }
+            }
+        } catch(e) {
+            // المنتج غير موجود
+        }
+    }
+
+    function removeItemRow(rowId) {
+        document.getElementById(rowId).remove();
+    }
+
+    function collectItems() {
+        const items = [];
+        const rows = document.querySelectorAll('#itemsList .item-row');
+        
+        rows.forEach(row => {
+            const sku = row.querySelector('input[placeholder="SKU"]')?.value.trim();
+            const name = row.querySelector('input[placeholder="اسم المنتج"]')?.value.trim();
+            const quantity = parseInt(row.querySelector('input[placeholder="الكمية"]')?.value) || 1;
+            const isRequired = row.querySelector('.form-check-input')?.checked || false;
+            
+            if (sku) {
+                items.push({ sku, name: name || sku, quantity, is_required: isRequired });
+            }
+        });
+        
+        return items;
+    }
+
+    async function saveTemplate() {
+        const id = document.getElementById('templateId').value;
+        const name = document.getElementById('templateName').value.trim();
+        const description = document.getElementById('templateDescription').value;
+        const is_active = document.getElementById('templateActive').checked;
+        const items = collectItems();
+        
+        if (!name) {
+            showToast('اسم النموذج مطلوب', 'danger');
+            return;
+        }
+        
+        if (!items.length) {
+            showToast('يجب إضافة صنف واحد على الأقل', 'danger');
+            return;
+        }
+        
+        const data = { name, description, items, is_active };
+        
+        try {
+            if (id) {
+                await apiRequest(`/admin/templates/${id}`, 'PUT', data);
+                showToast('تم تحديث النموذج بنجاح', 'success');
+            } else {
+                await apiRequest('/admin/templates', 'POST', data);
+                showToast('تم إنشاء النموذج بنجاح', 'success');
+            }
+            
+            bootstrap.Modal.getInstance(document.getElementById('addTemplateModal')).hide();
+            resetTemplateForm();
+            loadTemplates();
+        } catch(e) {
+            showToast('فشل حفظ النموذج', 'danger');
+        }
+    }
+
+    function editTemplate() {
+        if (!selectedTemplate) return;
+        
+        bootstrap.Modal.getInstance(document.getElementById('templateDetailModal')).hide();
+        
+        document.getElementById('templateId').value = selectedTemplate.id;
+        document.getElementById('templateName').value = selectedTemplate.name;
+        document.getElementById('templateDescription').value = selectedTemplate.description || '';
+        document.getElementById('templateActive').checked = selectedTemplate.is_active;
+        
+        // مسح العناصر الحالية وإضافة عناصر النموذج
+        document.getElementById('itemsList').innerHTML = '';
+        itemCounter = 0;
+        
+        (selectedTemplate.items || []).forEach(item => {
+            addItemRow(item.sku, item.quantity, item.name || item.sku, item.is_required);
+        });
+        
+        new bootstrap.Modal(document.getElementById('addTemplateModal')).show();
+    }
+
+    async function deleteTemplate() {
+        if (!selectedTemplate || !confirm('هل أنت متأكد من حذف هذا النموذج؟')) return;
+        
+        try {
+            await apiRequest(`/admin/templates/${selectedTemplate.id}`, 'DELETE');
+            bootstrap.Modal.getInstance(document.getElementById('templateDetailModal')).hide();
+            loadTemplates();
+            showToast('تم حذف النموذج بنجاح', 'success');
+        } catch(e) {
+            showToast('فشل حذف النموذج', 'danger');
+        }
+    }
+
+    function resetTemplateForm() {
+        document.getElementById('templateId').value = '';
+        document.getElementById('templateName').value = '';
+        document.getElementById('templateDescription').value = '';
+        document.getElementById('templateActive').checked = true;
+        document.getElementById('itemsList').innerHTML = '';
+        itemCounter = 0;
+        addItemRow(); // إضافة صف فارغ واحد
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function showToast(msg, type) {
+        alert(msg);
+    }
+
+    function logout() {
+        localStorage.removeItem('admin_token');
+        window.location.href = 'index.html';
+    }
+    
+    // إضافة صف فارغ عند فتح المودال للإضافة
+    document.getElementById('addTemplateModal').addEventListener('show.bs.modal', function() {
+        if (!document.getElementById('templateId').value) {
+            document.getElementById('itemsList').innerHTML = '';
+            itemCounter = 0;
+            addItemRow();
+        }
+    });
+    
+    document.getElementById('addTemplateModal').addEventListener('hidden.bs.modal', resetTemplateForm);
+</script>
+</body>
+</html>

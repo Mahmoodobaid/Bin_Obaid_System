@@ -1,0 +1,47 @@
+# =====================================================
+# docker-compose.yml - تشغيل خادم بن عبيد مع Docker Compose
+# =====================================================
+
+version: '3.8'
+
+services:
+  # خدمة Flask API
+  web:
+    build: .
+    container_name: binobeid_api
+    restart: always
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    volumes:
+      - ./backend:/app          # مزامنة للتطوير (يمكن إزالتها في الإنتاج)
+      - /app/__pycache__        # استثناء مجلد الكاش
+    environment:
+      - FLASK_DEBUG=False
+      - TZ=Asia/Aden
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - binobeid_network
+
+  # (اختياري) يمكن إضافة خدمة Nginx كـ reverse proxy
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: binobeid_nginx
+  #   ports:
+  #     - "80:80"
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/nginx.conf
+  #   depends_on:
+  #     - web
+  #   networks:
+  #     - binobeid_network
+
+networks:
+  binobeid_network:
+    driver: bridge
