@@ -4,8 +4,8 @@
 
 class Constants {
   // رابط API الأساسي (غيّره إلى رابط سيرفرك في الإنتاج)
- // static const String apiBaseUrl = 'http://localhost:5000/api';
-  static const String apiBaseUrl = 'https://bin-obaid-system.onrender.com/api';
+  static const String apiBaseUrl = 'http://localhost:5000/api';
+  
   // مفاتيح التخزين المحلي
   static const String tokenKey = 'jwt_token';
   static const String userKey = 'user_data';
