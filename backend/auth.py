@@ -69,13 +69,11 @@ def decode_token(token: str) -> dict:
 
 
 def is_valid_email(email: str) -> bool:
-    """التحقق من صحة البريد الإلكتروني"""
     pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
     return re.match(pattern, email) is not None
 
 
 def is_valid_password(password: str) -> bool:
-    """التحقق من قوة كلمة المرور (8 أحرف، حرف كبير، رقم)"""
     if len(password) < 8:
         return False
     if not re.search(r'[A-Z]', password):
@@ -86,7 +84,6 @@ def is_valid_password(password: str) -> bool:
 
 
 def log_user_action(user_id: str, action: str, ip: str = None):
-    """تسجيل نشاط المستخدم في جدول logs"""
     try:
         supabase.table('logs').insert({
             'user_id': user_id,
@@ -101,19 +98,16 @@ def log_user_action(user_id: str, action: str, ip: str = None):
 # ===================== دوال إدارة المستخدمين =====================
 
 def _get_user_by_email(email: str):
-    """استرجاع مستخدم حسب البريد الإلكتروني"""
     result = supabase.table('users').select('*').eq('email', email.lower()).execute()
     return result.data[0] if result.data else None
 
 
 def _get_user_by_id(user_id: str):
-    """استرجاع مستخدم حسب المعرف"""
     result = supabase.table('users').select('*').eq('id', user_id).execute()
     return result.data[0] if result.data else None
 
 
 def _create_user(email: str, password: str, full_name: str, role: str = 'customer'):
-    """إنشاء مستخدم جديد"""
     user_id = str(uuid.uuid4())
     password_hash = generate_password_hash(password)
     data = {
@@ -132,14 +126,12 @@ def _create_user(email: str, password: str, full_name: str, role: str = 'custome
 
 
 def _update_user(user_id: str, updates: dict):
-    """تحديث بيانات مستخدم"""
     supabase.table('users').update(updates).eq('id', user_id).execute()
 
 
 # ===================== دوال إدارة refresh tokens =====================
 
 def _store_refresh_token(user_id: str, token: str, expires_at: datetime):
-    """تخزين refresh token في قاعدة البيانات"""
     try:
         supabase.table('refresh_tokens').insert({
             'user_id': user_id,
@@ -152,7 +144,6 @@ def _store_refresh_token(user_id: str, token: str, expires_at: datetime):
 
 
 def _validate_refresh_token(user_id: str, token: str) -> bool:
-    """التحقق من صحة refresh token"""
     result = supabase.table('refresh_tokens') \
         .select('*') \
         .eq('user_id', user_id) \
@@ -164,7 +155,6 @@ def _validate_refresh_token(user_id: str, token: str) -> bool:
 
 
 def _revoke_refresh_token(user_id: str, token: str):
-    """إلغاء refresh token (تسجيل خروج من جهاز واحد)"""
     supabase.table('refresh_tokens') \
         .update({'revoked': True}) \
         .eq('user_id', user_id) \
@@ -173,7 +163,6 @@ def _revoke_refresh_token(user_id: str, token: str):
 
 
 def _revoke_all_user_tokens(user_id: str):
-    """إلغاء جميع refresh tokens للمستخدم (تسجيل خروج من جميع الأجهزة)"""
     supabase.table('refresh_tokens') \
         .update({'revoked': True}) \
         .eq('user_id', user_id) \
@@ -185,7 +174,6 @@ def _revoke_all_user_tokens(user_id: str):
 _login_attempts = {}
 
 def _record_failed_login(email: str):
-    """تسجيل محاولة دخول فاشلة"""
     key = email.lower()
     now = datetime.utcnow()
     if key not in _login_attempts:
@@ -195,7 +183,6 @@ def _record_failed_login(email: str):
 
 
 def _is_account_locked(email: str) -> bool:
-    """التحقق إذا كان الحساب مقفلاً بسبب كثرة المحاولات"""
     key = email.lower()
     if key not in _login_attempts:
         return False
@@ -210,7 +197,6 @@ def _is_account_locked(email: str) -> bool:
 
 
 def _reset_login_attempts(email: str):
-    """إعادة تعيين محاولات الدخول الفاشلة بعد نجاح الدخول"""
     key = email.lower()
     if key in _login_attempts:
         del _login_attempts[key]
@@ -219,7 +205,6 @@ def _reset_login_attempts(email: str):
 # ===================== دوال إعادة تعيين كلمة المرور =====================
 
 def _create_password_reset_token(email: str) -> str:
-    """إنشاء رمز إعادة تعيين كلمة المرور"""
     token = uuid.uuid4().hex
     expires_at = datetime.utcnow() + timedelta(hours=24)
     supabase.table('password_resets').delete().eq('email', email.lower()).execute()
@@ -233,7 +218,6 @@ def _create_password_reset_token(email: str) -> str:
 
 
 def _validate_reset_token(token: str) -> str:
-    """التحقق من صحة رمز إعادة التعيين وإرجاع البريد الإلكتروني"""
     result = supabase.table('password_resets') \
         .select('email') \
         .eq('token', token) \
@@ -244,18 +228,13 @@ def _validate_reset_token(token: str) -> str:
 
 
 def _mark_reset_token_used(token: str):
-    """تحديث رمز إعادة التعيين كمستخدم"""
     supabase.table('password_resets').update({'used': True}).eq('token', token).execute()
 
 
-# ===================== نقاط النهاية (Endpoints) =====================
+# ===================== نقاط النهاية الأساسية =====================
 
 @auth_bp.route('/register', methods=['POST'])
 def register():
-    """
-    إنشاء حساب جديد
-    الجسم: { "email", "password", "full_name", "role" (اختياري) }
-    """
     data = request.get_json()
     if not data:
         return jsonify({'error': 'بيانات غير صالحة'}), 400
@@ -265,36 +244,26 @@ def register():
     full_name = data.get('full_name', '').strip()
     role = data.get('role', 'customer')
 
-    # التحقق من صحة البريد
     if not is_valid_email(email):
         return jsonify({'error': 'البريد الإلكتروني غير صالح'}), 400
-
-    # التحقق من قوة كلمة المرور
     if not is_valid_password(password):
         return jsonify({'error': 'كلمة المرور يجب أن تحتوي على 8 أحرف على الأقل، حرف كبير ورقم واحد'}), 400
-
     if not full_name:
         return jsonify({'error': 'الاسم الكامل مطلوب'}), 400
-
     if role not in ['customer', 'delivery', 'admin']:
         role = 'customer'
 
-    # التحقق من عدم وجود البريد مسبقاً
     existing = _get_user_by_email(email)
     if existing:
         return jsonify({'error': 'البريد الإلكتروني مستخدم بالفعل'}), 409
 
-    # إنشاء المستخدم
     user = _create_user(email, password, full_name, role)
     if not user:
         return jsonify({'error': 'حدث خطأ أثناء إنشاء الحساب'}), 500
 
-    # إنشاء التوكنات
     access_token = generate_access_token(user['id'], user['email'], user['role'])
     refresh_token, refresh_expires = generate_refresh_token(user['id'])
     _store_refresh_token(user['id'], refresh_token, refresh_expires)
-
-    # تسجيل الحدث
     log_user_action(user['id'], 'register')
 
     return jsonify({
@@ -312,10 +281,6 @@ def register():
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
-    """
-    تسجيل الدخول
-    الجسم: { "email", "password" }
-    """
     data = request.get_json()
     if not data:
         return jsonify({'error': 'بيانات غير صالحة'}), 400
@@ -323,38 +288,27 @@ def login():
     email = data.get('email', '').strip().lower()
     password = data.get('password', '')
 
-    # التحقق من قفل الحساب
     if _is_account_locked(email):
         return jsonify({'error': f'تم قفل الحساب مؤقتاً بسبب كثرة المحاولات، حاول بعد {LOCKOUT_TIME_MINUTES} دقيقة'}), 429
 
-    # البحث عن المستخدم
     user = _get_user_by_email(email)
     if not user:
         _record_failed_login(email)
         return jsonify({'error': 'البريد الإلكتروني أو كلمة المرور غير صحيحة'}), 401
 
-    # التحقق من نشاط الحساب
     if not user.get('is_active', True):
-        return jsonify({'error': 'الحساب غير نشط، يرجى التواصل مع الدعم'}), 403
+        return jsonify({'error': 'الحساب غير نشط'}), 403
 
-    # التحقق من كلمة المرور
     if not check_password_hash(user['password_hash'], password):
         _record_failed_login(email)
         log_user_action(user['id'], 'failed_login_attempt')
         return jsonify({'error': 'البريد الإلكتروني أو كلمة المرور غير صحيحة'}), 401
 
-    # إعادة تعيين محاولات الدخول الفاشلة
     _reset_login_attempts(email)
-
-    # إنشاء التوكنات
     access_token = generate_access_token(user['id'], user['email'], user['role'])
     refresh_token, refresh_expires = generate_refresh_token(user['id'])
     _store_refresh_token(user['id'], refresh_token, refresh_expires)
-
-    # تحديث آخر تسجيل دخول
     _update_user(user['id'], {'last_login': datetime.utcnow().isoformat()})
-
-    # تسجيل الحدث
     log_user_action(user['id'], 'login')
 
     return jsonify({
@@ -373,17 +327,11 @@ def login():
 
 @auth_bp.route('/refresh', methods=['POST'])
 def refresh():
-    """
-    تجديد access_token باستخدام refresh_token
-    الجسم: { "refresh_token" }
-    """
     data = request.get_json()
     if not data or 'refresh_token' not in data:
         return jsonify({'error': 'refresh_token مطلوب'}), 400
 
     refresh_token = data['refresh_token']
-
-    # البحث عن المستخدم المرتبط بهذا التوكن
     result = supabase.table('refresh_tokens') \
         .select('user_id, expires_at, revoked') \
         .eq('token', refresh_token) \
@@ -403,9 +351,7 @@ def refresh():
     if not user or not user.get('is_active', True):
         return jsonify({'error': 'المستخدم غير نشط'}), 403
 
-    # إنشاء access token جديد
     new_access_token = generate_access_token(user['id'], user['email'], user['role'])
-
     return jsonify({
         'access_token': new_access_token,
         'refresh_token': refresh_token
@@ -414,17 +360,11 @@ def refresh():
 
 @auth_bp.route('/logout', methods=['POST'])
 def logout():
-    """
-    تسجيل الخروج: إبطال refresh_token المستخدم
-    الجسم: { "refresh_token" }
-    """
     data = request.get_json()
     if not data or 'refresh_token' not in data:
         return jsonify({'error': 'refresh_token مطلوب'}), 400
 
     refresh_token = data['refresh_token']
-
-    # البحث عن التوكن
     result = supabase.table('refresh_tokens') \
         .select('user_id') \
         .eq('token', refresh_token) \
@@ -440,10 +380,6 @@ def logout():
 
 @auth_bp.route('/logout-all', methods=['POST'])
 def logout_all():
-    """
-    تسجيل الخروج من جميع الأجهزة (إبطال كل refresh tokens للمستخدم)
-    يتطلب إرسال access_token صالح في الهيدر
-    """
     auth_header = request.headers.get('Authorization')
     if not auth_header or not auth_header.startswith('Bearer '):
         return jsonify({'error': 'Access token مطلوب'}), 401
@@ -461,10 +397,6 @@ def logout_all():
 
 @auth_bp.route('/forgot-password', methods=['POST'])
 def forgot_password():
-    """
-    طلب إعادة تعيين كلمة المرور
-    الجسم: { "email" }
-    """
     data = request.get_json()
     if not data or 'email' not in data:
         return jsonify({'error': 'البريد الإلكتروني مطلوب'}), 400
@@ -475,21 +407,14 @@ def forgot_password():
         return jsonify({'message': 'إذا كان البريد مسجلاً، ستتلقى رابط إعادة التعيين'}), 200
 
     reset_token = _create_password_reset_token(email)
-
-    # في وضع التطوير، نعيد الرابط للتجربة
     if current_app.debug:
         return jsonify({'message': 'رابط إعادة التعيين', 'reset_token': reset_token}), 200
     else:
-        # هنا يمكن إرسال البريد الإلكتروني عبر SMTP أو Gmail API
         return jsonify({'message': 'تم إرسال رابط إعادة التعيين إلى بريدك الإلكتروني'}), 200
 
 
 @auth_bp.route('/reset-password', methods=['POST'])
 def reset_password():
-    """
-    إعادة تعيين كلمة المرور باستخدام الرمز
-    الجسم: { "token", "new_password" }
-    """
     data = request.get_json()
     if not data or 'token' not in data or 'new_password' not in data:
         return jsonify({'error': 'الرمز وكلمة المرور الجديدة مطلوبة'}), 400
@@ -508,28 +433,16 @@ def reset_password():
     if not user:
         return jsonify({'error': 'المستخدم غير موجود'}), 404
 
-    # تحديث كلمة المرور
     new_hash = generate_password_hash(new_password)
     _update_user(user['id'], {'password_hash': new_hash})
-
-    # إبطال الرمز المستخدم
     _mark_reset_token_used(token)
-
-    # إبطال جميع refresh tokens للمستخدم (إجباره على تسجيل الدخول من جديد)
     _revoke_all_user_tokens(user['id'])
-
     log_user_action(user['id'], 'password_reset')
-
-    return jsonify({'message': 'تم إعادة تعيين كلمة المرور بنجاح، يرجى تسجيل الدخول'}), 200
+    return jsonify({'message': 'تم إعادة تعيين كلمة المرور بنجاح'}), 200
 
 
 @auth_bp.route('/change-password', methods=['POST'])
 def change_password():
-    """
-    تغيير كلمة المرور لمستخدم مسجل الدخول
-    يتطلب access_token في الهيدر
-    الجسم: { "old_password", "new_password" }
-    """
     auth_header = request.headers.get('Authorization')
     if not auth_header or not auth_header.startswith('Bearer '):
         return jsonify({'error': 'Access token مطلوب'}), 401
@@ -556,7 +469,6 @@ def change_password():
 
     new_hash = generate_password_hash(data['new_password'])
     _update_user(user_id, {'password_hash': new_hash})
-
     log_user_action(user_id, 'change_password')
     return jsonify({'message': 'تم تغيير كلمة المرور بنجاح'}), 200
 
@@ -564,7 +476,6 @@ def change_password():
 # ===================== دوال مساعدة للاستخدام في decorators =====================
 
 def get_current_user_from_token(token: str):
-    """استخراج المستخدم من access token"""
     payload = decode_token(token)
     if not payload or payload.get('type') != 'access':
         return None
@@ -572,140 +483,98 @@ def get_current_user_from_token(token: str):
 
 
 def verify_token(token: str) -> bool:
-    """التحقق من صحة access token"""
     payload = decode_token(token)
     return payload is not None and payload.get('type') == 'access'
-# ============= نظام الترخيص المتقدم =============
+
+
+# ===================== نظام الترخيص =====================
+
 import secrets
 import hashlib
-import json
 from datetime import datetime, timedelta
 
-# قائمة المفاتيح المسموح بها (يمكنك إضافة مفاتيح لأشخاص محددين)
 ALLOWED_LICENSE_KEYS = {
-    # مفتاح المسؤول الرئيسي (ضع المفتاح الذي تم توليده)
-    "main": "هنا_ضع_المفتاح_الرئيسي_الذي_تم_توليده",
-    
-    # يمكنك إضافة مفاتيح لأشخاص محددين
-    # "user_1": "مفتاح_الشخص_الأول",
-    # "user_2": "مفتاح_الشخص_الثاني",
+    "main": "35106c0893acb3291e8db1e7ed0c7f5cde700d99fb40e28e0c7b6dcc200d9bf3",
 }
-
-# صلاحية المفاتيح (تاريخ الانتهاء)
-LICENSE_EXPIRY = {
-    # "مفتاح_الشخص": "2026-12-31",
-}
+LICENSE_EXPIRY = {}
 
 def generate_user_license(user_email, days_valid=365):
-    """إنشاء مفتاح ترخيص لمستخدم محدد"""
     expiry_date = (datetime.now() + timedelta(days=days_valid)).strftime("%Y-%m-%d")
     unique_string = f"{user_email}-{secrets.token_hex(16)}-{expiry_date}"
     license_key = hashlib.sha256(unique_string.encode()).hexdigest()
     return license_key, expiry_date
 
 def verify_license(license_key, user_email=None):
-    """التحقق من صحة مفتاح الترخيص"""
-    # التحقق من المفتاح الرئيسي
     if license_key == ALLOWED_LICENSE_KEYS.get("main"):
         return True, "admin"
-    
-    # التحقق من المفاتيح الإضافية
     for user, key in ALLOWED_LICENSE_KEYS.items():
         if license_key == key and user != "main":
-            # التحقق من الصلاحية
             if user in LICENSE_EXPIRY:
                 expiry = LICENSE_EXPIRY[user]
                 if datetime.now() > datetime.strptime(expiry, "%Y-%m-%d"):
                     return False, "انتهت صلاحية الترخيص"
             return True, user
-    
     return False, None
 
 @auth_bp.route('/verify-license', methods=['POST'])
 def verify_license_endpoint():
-    """نقطة نهاية للتحقق من الترخيص (للتطبيق)"""
     data = request.json
     license_key = data.get('license_key', '')
     user_email = data.get('email', '')
-    
     is_valid, user_type = verify_license(license_key, user_email)
-    
     if is_valid:
-        return jsonify({
-            'valid': True,
-            'user_type': user_type,
-            'message': 'ترخيص صالح'
-        }), 200
+        return jsonify({'valid': True, 'user_type': user_type, 'message': 'ترخيص صالح'}), 200
     else:
-        return jsonify({
-            'valid': False,
-            'error': 'ترخيص غير صالح أو منتهي الصلاحية'
-        }), 403
+        return jsonify({'valid': False, 'error': 'ترخيص غير صالح أو منتهي الصلاحية'}), 403
 
 @auth_bp.route('/admin/generate-license', methods=['POST'])
 @login_required
 @role_required(['admin'])
 def admin_generate_license():
-    """إنشاء مفتاح ترخيص لمستخدم جديد (للمسؤول فقط)"""
     data = request.json
     user_email = data.get('email')
     days_valid = data.get('days_valid', 365)
-    
     if not user_email:
         return jsonify({'error': 'البريد الإلكتروني مطلوب'}), 400
-    
     license_key, expiry = generate_user_license(user_email, days_valid)
-    
-    # حفظ المفتاح في الذاكرة (يمكن حفظه في قاعدة البيانات)
     ALLOWED_LICENSE_KEYS[user_email] = license_key
     LICENSE_EXPIRY[user_email] = expiry
-    
     return jsonify({
         'license_key': license_key,
         'expiry_date': expiry,
         'message': f'تم إنشاء الترخيص للمستخدم {user_email}'
     }), 201
 
-# ============= دعم تسجيل الدخول برقم الهاتف =============
-import re
+
+# ===================== تسجيل الدخول برقم الهاتف =====================
 
 def is_valid_phone(phone: str) -> bool:
-    """التحقق من صحة رقم الهاتف (يمني أو دولي)"""
     pattern = r'^(\+967|0)?[0-9]{9}$'
     return bool(re.match(pattern, phone.strip()))
 
 def _get_user_by_phone(phone: str):
-    """استرجاع مستخدم حسب رقم الهاتف"""
     result = supabase.table('users').select('*').eq('phone', phone).execute()
     return result.data[0] if result.data else None
 
 @auth_bp.route('/login-with-phone', methods=['POST'])
 def login_with_phone():
-    """تسجيل الدخول باستخدام رقم الهاتف"""
     data = request.get_json()
     if not data:
         return jsonify({'error': 'بيانات غير صالحة'}), 400
-    
     phone = data.get('phone', '').strip()
     password = data.get('password', '')
-    
     if not phone or not password:
         return jsonify({'error': 'رقم الهاتف وكلمة المرور مطلوبان'}), 400
-    
     user = _get_user_by_phone(phone)
     if not user:
         return jsonify({'error': 'رقم الهاتف أو كلمة المرور غير صحيحة'}), 401
-    
     if not user.get('is_active', True):
         return jsonify({'error': 'الحساب غير نشط'}), 403
-    
     if not check_password_hash(user['password_hash'], password):
         return jsonify({'error': 'رقم الهاتف أو كلمة المرور غير صحيحة'}), 401
-    
     access_token = generate_access_token(user['id'], user['email'], user['role'])
     refresh_token, refresh_expires = generate_refresh_token(user['id'])
     _store_refresh_token(user['id'], refresh_token, refresh_expires)
-    
     return jsonify({
         'access_token': access_token,
         'refresh_token': refresh_token,
@@ -718,97 +587,11 @@ def login_with_phone():
         }
     }), 200
 
-# ========== نقاط نهاية التسجيل مع مراجعة المسؤول ==========
-@auth_bp.route('/users/check', methods=['GET'])
-    phone = request.args.get('phone')
-    if not phone:
-        return jsonify({'exists': False}), 400
-    # التحقق من جدول users
-    result = supabase.table('users').select('phone').eq('phone', phone).execute()
-    if result.data:
-        return jsonify({'exists': True}), 200
-    # التحقق من جدول pending_users
-    pending = supabase.table('pending_users').select('phone').eq('phone', phone).execute()
-    if pending.data:
-        return jsonify({'exists': True, 'pending': True}), 200
-    return jsonify({'exists': False}), 200
 
-@auth_bp.route('/register-request', methods=['POST'])
-def register_request():
-    import uuid
-    data = request.json
-    phone = data.get('phone')
-    full_name = data.get('full_name')
-    occupation = data.get('occupation')
-    address = data.get('address')
-    image_url = data.get('image_url')
-    if not phone or not full_name:
-        return jsonify({'error': 'رقم الهاتف والاسم مطلوبان'}), 400
-    existing = supabase.table('pending_users').select('*').eq('phone', phone).execute()
-    if existing.data:
-        return jsonify({'error': 'طلب تسجيل لهذا الرقم موجود مسبقاً'}), 409
-    new_id = str(uuid.uuid4())
-    supabase.table('pending_users').insert({
-        'id': new_id,
-        'phone': phone,
-        'full_name': full_name,
-        'occupation': occupation,
-        'address': address,
-        'image_url': image_url,
-        'status': 'pending'
-    }).execute()
-    # إرسال إشعار للمسؤول (يمكن إضافة بريد إلكتروني لاحقاً)
-    # إرسال رسالة تأكيد للعميل (إذا تم تفعيل Twilio)
-    from fcm_sender import send_sms
-    send_sms(phone, "✅ تم استلام طلب التسجيل الخاص بك في بن عبيد التجارية. سيتم مراجعة طلبك وإعلامك عند الموافقة. شكراً لتسجيلك.")
-    return jsonify({'success': True, 'message': 'تم إرسال طلب التسجيل'}), 201
-
-# ========== نقاط نهاية التسجيل مع مراجعة المسؤول ==========
-@auth_bp.route('/users/check', methods=['GET'])
-    phone = request.args.get('phone')
-    if not phone:
-        return jsonify({'exists': False}), 400
-    # التحقق من جدول users
-    result = supabase.table('users').select('phone').eq('phone', phone).execute()
-    if result.data:
-        return jsonify({'exists': True}), 200
-    # التحقق من جدول pending_users
-    pending = supabase.table('pending_users').select('phone').eq('phone', phone).execute()
-    if pending.data:
-        return jsonify({'exists': True, 'pending': True}), 200
-    return jsonify({'exists': False}), 200
-
-@auth_bp.route('/register-request', methods=['POST'])
-def register_request():
-    import uuid
-    data = request.json
-    phone = data.get('phone')
-    full_name = data.get('full_name')
-    occupation = data.get('occupation')
-    address = data.get('address')
-    image_url = data.get('image_url')
-    if not phone or not full_name:
-        return jsonify({'error': 'رقم الهاتف والاسم مطلوبان'}), 400
-    existing = supabase.table('pending_users').select('*').eq('phone', phone).execute()
-    if existing.data:
-        return jsonify({'error': 'طلب تسجيل لهذا الرقم موجود مسبقاً'}), 409
-    new_id = str(uuid.uuid4())
-    supabase.table('pending_users').insert({
-        'id': new_id,
-        'phone': phone,
-        'full_name': full_name,
-        'occupation': occupation,
-        'address': address,
-        'image_url': image_url,
-        'status': 'pending'
-    }).execute()
-    # إرسال إشعار للمسؤول (يمكن إضافة بريد إلكتروني لاحقاً)
-    # إرسال رسالة تأكيد للعميل (إذا تم تفعيل Twilio)
-    from fcm_sender import send_sms
-    send_sms(phone, "✅ تم استلام طلب التسجيل الخاص بك في بن عبيد التجارية. سيتم مراجعة طلبك وإعلامك عند الموافقة. شكراً لتسجيلك.")
-    return jsonify({'success': True, 'message': 'تم إرسال طلب التسجيل'}), 201
+# ===================== طلبات التسجيل الجديدة (انتظار موافقة المسؤول) =====================
 
 @auth_bp.route('/users/check', methods=['GET'])
+def check_user_exists():
     phone = request.args.get('phone')
     if not phone:
         return jsonify({'exists': False}), 400
@@ -844,9 +627,16 @@ def register_request():
         'image_url': image_url,
         'status': 'pending'
     }).execute()
-    from fcm_sender import send_sms
-    send_sms(phone, "✅ تم استلام طلب التسجيل الخاص بك في بن عبيد التجارية. سيتم مراجعة طلبك وإعلامك عند الموافقة. شكراً لتسجيلك.")
+    # إرسال رسالة تأكيد (اختياري – إذا تم تفعيل SMS)
+    try:
+        from fcm_sender import send_sms
+        send_sms(phone, "✅ تم استلام طلب التسجيل الخاص بك في بن عبيد التجارية. سيتم مراجعة طلبك وإعلامك عند الموافقة. شكراً لتسجيلك.")
+    except:
+        pass
     return jsonify({'success': True, 'message': 'تم إرسال طلب التسجيل'}), 201
+
+
+# ===================== إدارة طلبات إعادة تعيين كلمة المرور (للمسؤول) =====================
 
 @auth_bp.route('/admin/password-reset-requests/<int:req_id>/generate', methods=['POST'])
 @login_required
@@ -862,7 +652,6 @@ def generate_new_password(req_id):
     new_password = ''.join(secrets.choice(alphabet) for _ in range(8))
     hashed = generate_password_hash(new_password)
     supabase.table('users').update({'password_hash': hashed}).eq('phone', phone).execute()
-    # تحديث حالة الطلب إلى "sent" (لكننا سنستخدم mark-sent لاحقاً)
     supabase.table('password_reset_requests').update({'status': 'sent'}).eq('id', req_id).execute()
     return jsonify({'new_password': new_password}), 200
 
@@ -872,56 +661,3 @@ def generate_new_password(req_id):
 def mark_request_sent(req_id):
     supabase.table('password_reset_requests').update({'status': 'sent'}).eq('id', req_id).execute()
     return jsonify({'message': 'تم تحديث الحالة'}), 200
-
-@auth_bp.route('/users/check', methods=['GET'])
-    phone = request.args.get('phone')
-    if not phone:
-        return jsonify({'exists': False}), 400
-    res = supabase.table('users').select('phone').eq('phone', phone).execute()
-    if res.data:
-        return jsonify({'exists': True}), 200
-    pend = supabase.table('pending_users').select('phone').eq('phone', phone).execute()
-    if pend.data:
-        return jsonify({'exists': True, 'pending': True}), 200
-    return jsonify({'exists': False}), 200
-
-@auth_bp.route('/users/check', methods=['GET'])
-
-@auth_bp.route('/users/check', methods=['GET'])
-def check_user_exists():
-    phone = request.args.get('phone')
-    if not phone:
-        return jsonify({'exists': False}), 400
-    res = supabase.table('users').select('phone').eq('phone', phone).execute()
-    if res.data:
-        return jsonify({'exists': True}), 200
-    pend = supabase.table('pending_users').select('phone').eq('phone', phone).execute()
-    if pend.data:
-        return jsonify({'exists': True, 'pending': True}), 200
-    return jsonify({'exists': False}), 200
-
-@auth_bp.route('/users/check', methods=['GET'])
-def check_user_exists():
-    phone = request.args.get('phone')
-    if not phone:
-        return jsonify({'exists': False}), 400
-    res = supabase.table('users').select('phone').eq('phone', phone).execute()
-    if res.data:
-        return jsonify({'exists': True}), 200
-    pend = supabase.table('pending_users').select('phone').eq('phone', phone).execute()
-    if pend.data:
-        return jsonify({'exists': True, 'pending': True}), 200
-    return jsonify({'exists': False}), 200
-
-@auth_bp.route('/users/check', methods=['GET'])
-def check_user_exists():
-    phone = request.args.get('phone')
-    if not phone:
-        return jsonify({'exists': False}), 400
-    res = supabase.table('users').select('phone').eq('phone', phone).execute()
-    if res.data:
-        return jsonify({'exists': True}), 200
-    pend = supabase.table('pending_users').select('phone').eq('phone', phone).execute()
-    if pend.data:
-        return jsonify({'exists': True, 'pending': True}), 200
-    return jsonify({'exists': False}), 200
