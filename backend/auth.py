@@ -886,6 +886,8 @@ def mark_request_sent(req_id):
     return jsonify({'exists': False}), 200
 
 @auth_bp.route('/users/check', methods=['GET'])
+
+@auth_bp.route('/users/check', methods=['GET'])
 def check_user_exists():
     phone = request.args.get('phone')
     if not phone:
