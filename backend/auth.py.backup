@@ -717,3 +717,49 @@ def login_with_phone():
             'role': user['role']
         }
     }), 200
+
+# ========== نقاط نهاية التسجيل مع مراجعة المسؤول ==========
+@auth_bp.route('/users/check', methods=['GET'])
+def check_user_exists():
+    phone = request.args.get('phone')
+    if not phone:
+        return jsonify({'exists': False}), 400
+    # التحقق من جدول users
+    result = supabase.table('users').select('phone').eq('phone', phone).execute()
+    if result.data:
+        return jsonify({'exists': True}), 200
+    # التحقق من جدول pending_users
+    pending = supabase.table('pending_users').select('phone').eq('phone', phone).execute()
+    if pending.data:
+        return jsonify({'exists': True, 'pending': True}), 200
+    return jsonify({'exists': False}), 200
+
+@auth_bp.route('/register-request', methods=['POST'])
+def register_request():
+    import uuid
+    data = request.json
+    phone = data.get('phone')
+    full_name = data.get('full_name')
+    occupation = data.get('occupation')
+    address = data.get('address')
+    image_url = data.get('image_url')
+    if not phone or not full_name:
+        return jsonify({'error': 'رقم الهاتف والاسم مطلوبان'}), 400
+    existing = supabase.table('pending_users').select('*').eq('phone', phone).execute()
+    if existing.data:
+        return jsonify({'error': 'طلب تسجيل لهذا الرقم موجود مسبقاً'}), 409
+    new_id = str(uuid.uuid4())
+    supabase.table('pending_users').insert({
+        'id': new_id,
+        'phone': phone,
+        'full_name': full_name,
+        'occupation': occupation,
+        'address': address,
+        'image_url': image_url,
+        'status': 'pending'
+    }).execute()
+    # إرسال إشعار للمسؤول (يمكن إضافة بريد إلكتروني لاحقاً)
+    # إرسال رسالة تأكيد للعميل (إذا تم تفعيل Twilio)
+    from fcm_sender import send_sms
+    send_sms(phone, "✅ تم استلام طلب التسجيل الخاص بك في بن عبيد التجارية. سيتم مراجعة طلبك وإعلامك عند الموافقة. شكراً لتسجيلك.")
+    return jsonify({'success': True, 'message': 'تم إرسال طلب التسجيل'}), 201

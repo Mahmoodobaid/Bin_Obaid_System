@@ -891,3 +891,53 @@ def approve_user(user_id):
 def reject_user(user_id):
     supabase.table('pending_users').update({'status': 'rejected'}).eq('id', user_id).execute()
     return jsonify({'message': 'تم رفض الطلب'}), 200
+
+# ========== إدارة طلبات التسجيل المعلقة ==========
+@admin_bp.route('/admin/pending-users', methods=['GET'])
+@login_required
+@role_required(['admin'])
+def get_pending_users():
+    result = supabase.table('pending_users').select('*').eq('status', 'pending').execute()
+    return jsonify(result.data), 200
+
+@admin_bp.route('/admin/pending-users/<user_id>/approve', methods=['POST'])
+@login_required
+@role_required(['admin'])
+def approve_user(user_id):
+    import uuid
+    from werkzeug.security import generate_password_hash
+    import secrets
+    import string
+    # جلب بيانات الطلب
+    pending = supabase.table('pending_users').select('*').eq('id', user_id).execute()
+    if not pending.data:
+        return jsonify({'error': 'الطلب غير موجود'}), 404
+    user_data = pending.data[0]
+    # إنشاء كلمة مرور مؤقتة
+    alphabet = string.ascii_letters + string.digits
+    temp_password = ''.join(secrets.choice(alphabet) for _ in range(8))
+    # إنشاء حساب حقيقي في جدول users
+    new_user = {
+        'id': str(uuid.uuid4()),
+        'email': f"{user_data['phone']}@temp.com",
+        'password_hash': generate_password_hash(temp_password),
+        'full_name': user_data['full_name'],
+        'role': 'customer',
+        'phone': user_data['phone'],
+        'is_active': True
+    }
+    supabase.table('users').insert(new_user).execute()
+    # تحديث حالة الطلب
+    supabase.table('pending_users').update({'status': 'approved'}).eq('id', user_id).execute()
+    # إرسال رسالة SMS للعميل
+    from fcm_sender import send_sms
+    message = f"🎉 تهانينا {user_data['full_name']}! تم قبول طلب التسجيل في بن عبيد التجارية. يمكنك الآن تسجيل الدخول باستخدام رقم الهاتف {user_data['phone']} وكلمة المرور المؤقتة: {temp_password}. يرجى تغيير كلمة المرور بعد الدخول."
+    send_sms(user_data['phone'], message)
+    return jsonify({'message': 'تمت الموافقة على الطلب وإرسال إشعار للعميل'}), 200
+
+@admin_bp.route('/admin/pending-users/<user_id>/reject', methods=['DELETE'])
+@login_required
+@role_required(['admin'])
+def reject_user(user_id):
+    supabase.table('pending_users').update({'status': 'rejected'}).eq('id', user_id).execute()
+    return jsonify({'message': 'تم رفض الطلب'}), 200
