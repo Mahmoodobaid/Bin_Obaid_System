@@ -2,39 +2,440 @@
 <html dir="rtl" lang="ar">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>دخول المسؤول - بن عبيد</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>تسجيل الدخول - بن عبيد التجارية</title>
+    <!-- Bootstrap & Font Awesome -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- خط Cairo -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        * { font-family: 'Cairo', 'Tahoma', sans-serif; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Cairo', sans-serif;
+        }
         body {
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            background: linear-gradient(135deg, #0f2b3d 0%, #1b4f6e 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 20px;
         }
-        .login-container { max-width: 450px; width: 100%; margin: 20px; }
-        .login-card { background: white; border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); overflow: hidden; }
-        .login-header { background: linear-gradient(135deg, #1e3c72, #2a5298); color: white; text-align: center; padding: 30px; }
-        .login-header i { font-size: 3rem; margin-bottom: 10px; }
-        .login-header h3 { margin: 0; font-size: 1.5rem; }
-        .login-header p { margin: 5px 0 0; opacity: 0.8; font-size: 0.8rem; }
-        .login-body { padding: 30px; }
-        .form-control { border-radius: 10px; padding: 12px 15px; }
-        .btn-login { background: linear-gradient(135deg, #1e3c72, #2a5298); border: none; border-radius: 10px; padding: 12px; font-weight: bold; }
-        .btn-login:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(30,60,114,0.3); }
-        .alert { border-radius: 10px; margin-bottom: 20px; }
-        .password-toggle { cursor: pointer; position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #6c757d; }
-        .input-group { position: relative; }
-        .input-group .form-control { padding-left: 40px; }
+        .login-card {
+            max-width: 450px;
+            width: 100%;
+            background: #ffffff;
+            border-radius: 32px;
+            box-shadow: 0 20px 35px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        .login-header {
+            background: linear-gradient(120deg, #1e5a7a, #0f3b4f);
+            padding: 30px 20px 25px;
+            text-align: center;
+            color: white;
+        }
+        .login-header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .login-header p {
+            font-size: 0.95rem;
+            opacity: 0.85;
+            margin-bottom: 0;
+        }
+        .role-tabs {
+            display: flex;
+            background: #f0f2f5;
+            border-radius: 50px;
+            margin: 20px 20px 0 20px;
+            padding: 5px;
+        }
+        .role-tab {
+            flex: 1;
+            text-align: center;
+            padding: 10px 0;
+            border-radius: 40px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #4a5568;
+        }
+        .role-tab.active {
+            background: #2c7da0;
+            color: white;
+            box-shadow: 0 2px 8px rgba(44,125,160,0.3);
+        }
+        .login-body {
+            padding: 20px 25px 30px;
+        }
+        .input-group-custom {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .input-group-custom i {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9aa7b5;
+            font-size: 1.2rem;
+            pointer-events: none;
+        }
+        .input-group-custom input {
+            width: 100%;
+            padding: 14px 45px 14px 15px;
+            border: 1px solid #e2e8f0;
+            border-radius: 30px;
+            font-size: 1rem;
+            transition: all 0.2s;
+            background: #f8fafc;
+        }
+        .input-group-custom input:focus {
+            outline: none;
+            border-color: #2c7da0;
+            box-shadow: 0 0 0 3px rgba(44,125,160,0.2);
+            background: white;
+        }
+        .password-toggle {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #9aa7b5;
+            z-index: 2;
+        }
+        .forgot-link {
+            text-align: left;
+            margin: -10px 0 20px;
+        }
+        .forgot-link a {
+            color: #2c7da0;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        .btn-login {
+            background: linear-gradient(95deg, #2c7da0, #1f5e7a);
+            border: none;
+            border-radius: 40px;
+            padding: 14px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            width: 100%;
+            color: white;
+            margin-bottom: 15px;
+            transition: transform 0.1s, box-shadow 0.2s;
+        }
+        .btn-login:active {
+            transform: scale(0.98);
+        }
+        .offline-mode {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #f1f5f9;
+            padding: 12px 20px;
+            border-radius: 40px;
+            margin-bottom: 20px;
+        }
+        .offline-mode label {
+            font-weight: 500;
+            color: #334155;
+            margin: 0;
+        }
+        .offline-mode .form-check-input {
+            width: 45px;
+            height: 24px;
+            cursor: pointer;
+        }
+        .create-account {
+            text-align: center;
+            margin-top: 15px;
+        }
+        .create-account a {
+            color: #2c7da0;
+            font-weight: 600;
+            text-decoration: none;
+        }
+        .footer-note {
+            text-align: center;
+            font-size: 0.7rem;
+            color: #94a3b8;
+            margin-top: 20px;
+        }
+        .alert-custom {
+            border-radius: 30px;
+            margin-bottom: 20px;
+        }
+        @media (max-width: 480px) {
+            .login-card { margin: 10px; }
+            .login-body { padding: 20px; }
+        }
     </style>
 </head>
 <body>
-<div class="login-container">
-    <div class="login-card">
-        <div class="login-header">
+
+<div class="login-card">
+    <div class="login-header">
+        <h1>مرحباً بك في بن عبيد التجارية</h1>
+        <p>قم بتسجيل الدخول</p>
+    </div>
+
+    <!-- أزرار اختيار نوع الحساب -->
+    <div class="role-tabs">
+        <div class="role-tab active" data-role="customer">عميل</div>
+        <div class="role-tab" data-role="agent">وكيل</div>
+    </div>
+
+    <div class="login-body">
+        <div id="alertMessage" class="alert alert-danger alert-custom" style="display: none;"></div>
+
+        <form id="loginForm">
+            <!-- رقم الهاتف -->
+            <div class="input-group-custom">
+                <i class="fas fa-phone-alt"></i>
+                <input type="tel" id="phone" class="form-control" placeholder="رقم الموبيل" value="770491653" required>
+                <small class="text-muted" style="display: block; margin-top: 5px; margin-right: 15px;">مثال: 7********</small>
+            </div>
+
+            <!-- كلمة المرور -->
+            <div class="input-group-custom">
+                <i class="fas fa-lock"></i>
+                <input type="password" id="password" class="form-control" placeholder="كلمة المرور" required>
+                <i class="fas fa-eye-slash password-toggle" onclick="togglePasswordVisibility()"></i>
+            </div>
+
+            <!-- هل نسيت كلمة السر؟ -->
+            <div class="forgot-link">
+                <a href="#" id="forgotPasswordLink">هل نسيت كلمة السر؟</a>
+            </div>
+
+            <!-- تسجيل الدخول بدون نت -->
+            <div class="offline-mode">
+                <label for="offlineCheckbox">دخول بدون نت</label>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="offlineCheckbox" style="transform: scale(1.2);">
+                </div>
+            </div>
+
+            <!-- زر تسجيل الدخول -->
+            <button type="submit" class="btn btn-login" id="loginBtn">
+                <i class="fas fa-sign-in-alt me-2"></i> تسجيل الدخول
+            </button>
+        </form>
+
+        <!-- إنشاء حساب جديد -->
+        <div class="create-account">
+            <span>لا تمتلك حساب؟ </span><a href="#" id="createAccountLink">إنشاء حساب</a>
+        </div>
+        <div class="footer-note">
+            <i class="fas fa-shield-alt"></i> بيئة آمنة ومحمية
+        </div>
+    </div>
+</div>
+
+<script>
+    // تحديد نوع الحساب (عميل / وكيل)
+    let selectedRole = 'customer'; // customer or agent
+
+    // إضافة مستمعين للأزرار
+    document.querySelectorAll('.role-tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            document.querySelectorAll('.role-tab').forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+            selectedRole = this.getAttribute('data-role');
+        });
+    });
+
+    // إظهار/إخفاء كلمة المرور
+    function togglePasswordVisibility() {
+        const pwdField = document.getElementById('password');
+        const icon = document.querySelector('.password-toggle');
+        if (pwdField.type === 'password') {
+            pwdField.type = 'text';
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        } else {
+            pwdField.type = 'password';
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        }
+    }
+
+    // التحقق من الاتصال بالإنترنت
+    function isOnline() {
+        return navigator.onLine;
+    }
+
+    // تخزين بيانات المستخدم للتسجيل بدون نت
+    function saveOfflineCredentials(phone, password, role) {
+        localStorage.setItem('offline_phone', phone);
+        localStorage.setItem('offline_password', password);
+        localStorage.setItem('offline_role', role);
+        localStorage.setItem('offline_enabled', 'true');
+    }
+
+    function getOfflineCredentials() {
+        return {
+            phone: localStorage.getItem('offline_phone'),
+            password: localStorage.getItem('offline_password'),
+            role: localStorage.getItem('offline_role'),
+            enabled: localStorage.getItem('offline_enabled') === 'true'
+        };
+    }
+
+    // تسجيل الدخول عبر API
+    async function loginOnline(phone, password, role) {
+        const endpoint = '/api/auth/login-with-phone';
+        const body = { phone, password };
+        try {
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            const data = await response.json();
+            if (response.ok && data.user) {
+                // إضافة دور المستخدم من الاستجابة (إذا كان موجوداً) أو استخدام الدور المختار
+                const userRole = data.user.role; // من قاعدة البيانات
+                localStorage.setItem('admin_token', data.access_token);
+                localStorage.setItem('user_data', JSON.stringify(data.user));
+                // توجيه بناءً على الدور (عميل -> صفحة العميل، وكيل -> صفحة الوكيل، مسؤول -> لوحة التحكم)
+                if (userRole === 'admin') {
+                    window.location.href = '/admin_web/dashboard.html';
+                } else if (userRole === 'delivery' || selectedRole === 'agent') {
+                    window.location.href = '/agent_dashboard.html'; // أنشئ هذه الصفحة لاحقاً
+                } else {
+                    window.location.href = '/customer_dashboard.html'; // أنشئ هذه الصفحة لاحقاً
+                }
+                return true;
+            } else {
+                showAlert(data.error || 'فشل تسجيل الدخول، تحقق من بياناتك');
+                return false;
+            }
+        } catch (error) {
+            console.error(error);
+            showAlert('حدث خطأ في الاتصال بالخادم');
+            return false;
+        }
+    }
+
+    // تسجيل الدخول بدون نت (يعتمد على البيانات المخزنة محلياً)
+    function loginOffline() {
+        const saved = getOfflineCredentials();
+        if (!saved.enabled || !saved.phone || !saved.password) {
+            showAlert('لا توجد بيانات مخزنة للتسجيل بدون نت. يرجى تسجيل الدخول عبر الإنترنت أولاً.');
+            return false;
+        }
+        // محاكاة تسجيل الدخول المحلي
+        const phoneInput = document.getElementById('phone').value.trim();
+        const passwordInput = document.getElementById('password').value;
+        if (phoneInput === saved.phone && passwordInput === saved.password) {
+            // تخزين جلسة محلية
+            localStorage.setItem('offline_session', 'true');
+            localStorage.setItem('user_role', saved.role);
+            // توجيه إلى لوحة التحكم المبسطة (يمكن إنشاء صفحة offline dashboard)
+            window.location.href = '/offline_dashboard.html';
+            return true;
+        } else {
+            showAlert('بيانات غير صحيحة. الرجاء التحقق من رقم الهاتف وكلمة المرور');
+            return false;
+        }
+    }
+
+    // عرض التنبيهات
+    function showAlert(msg) {
+        const alertDiv = document.getElementById('alertMessage');
+        alertDiv.innerText = msg;
+        alertDiv.style.display = 'block';
+        setTimeout(() => {
+            alertDiv.style.display = 'none';
+        }, 5000);
+    }
+
+    // معالج نموذج تسجيل الدخول
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const phone = document.getElementById('phone').value.trim();
+        const password = document.getElementById('password').value;
+        const offlineMode = document.getElementById('offlineCheckbox').checked;
+
+        if (!phone || !password) {
+            showAlert('الرجاء إدخال رقم الهاتف وكلمة المرور');
+            return;
+        }
+
+        const loginBtn = document.getElementById('loginBtn');
+        const originalText = loginBtn.innerHTML;
+        loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الدخول...';
+        loginBtn.disabled = true;
+
+        try {
+            if (offlineMode) {
+                // إذا كان الوضع غير متصل بالإنترنت أو تم تفعيل خيار "دخول بدون نت"
+                if (!isOnline()) {
+                    // لا يوجد إنترنت -> استخدام الوضع المحلي
+                    loginOffline();
+                } else {
+                    // هناك إنترنت -> نقوم بتسجيل الدخول عادي ونحفظ البيانات للاستخدام بدون نت لاحقاً
+                    const success = await loginOnline(phone, password, selectedRole);
+                    if (success) {
+                        saveOfflineCredentials(phone, password, selectedRole);
+                    }
+                }
+            } else {
+                // الوضع العادي (يتطلب اتصال إنترنت)
+                if (!isOnline()) {
+                    showAlert('لا يوجد اتصال بالإنترنت. قم بتفعيل "دخول بدون نت" أو تأكد من اتصالك.');
+                    loginBtn.innerHTML = originalText;
+                    loginBtn.disabled = false;
+                    return;
+                }
+                await loginOnline(phone, password, selectedRole);
+            }
+        } catch (err) {
+            console.error(err);
+            showAlert('حدث خطأ غير متوقع');
+        } finally {
+            loginBtn.innerHTML = originalText;
+            loginBtn.disabled = false;
+        }
+    });
+
+    // روابط إضافية
+    document.getElementById('forgotPasswordLink').addEventListener('click', (e) => {
+        e.preventDefault();
+        alert('سيتم إرسال رابط إعادة تعيين كلمة المرور إلى رقم هاتفك. هذه الخدمة قريباً.');
+        // يمكن توجيه إلى صفحة استعادة كلمة المرور
+    });
+
+    document.getElementById('createAccountLink').addEventListener('click', (e) => {
+        e.preventDefault();
+        alert('سيتم توجيهك إلى صفحة إنشاء حساب جديد. هذه الخدمة قريباً.');
+        // window.location.href = '/register.html';
+    });
+
+    // تحميل آخر رقم هاتف مستخدم إذا كان موجوداً (اختياري)
+    window.onload = () => {
+        const offlineData = getOfflineCredentials();
+        if (offlineData.phone) {
+            document.getElementById('phone').value = offlineData.phone;
+        }
+        // إذا كان وضع offline مفعلاً مسبقاً، فعّل checkbox
+        if (offlineData.enabled) {
+            document.getElementById('offlineCheckbox').checked = true;
+        }
+    };
+</script>
+</body>
+</html>        <div class="login-header">
             <i class="fas fa-store"></i>
             <h3>بن عبيد للتجارة</h3>
             <p>نظام إدارة المخازن وعروض الأسعار</p>
