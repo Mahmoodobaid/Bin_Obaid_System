@@ -665,3 +665,55 @@ def admin_generate_license():
         'expiry_date': expiry,
         'message': f'تم إنشاء الترخيص للمستخدم {user_email}'
     }), 201
+
+# ============= دعم تسجيل الدخول برقم الهاتف =============
+import re
+
+def is_valid_phone(phone: str) -> bool:
+    """التحقق من صحة رقم الهاتف (يمني أو دولي)"""
+    pattern = r'^(\+967|0)?[0-9]{9}$'
+    return bool(re.match(pattern, phone.strip()))
+
+def _get_user_by_phone(phone: str):
+    """استرجاع مستخدم حسب رقم الهاتف"""
+    result = supabase.table('users').select('*').eq('phone', phone).execute()
+    return result.data[0] if result.data else None
+
+@auth_bp.route('/login-with-phone', methods=['POST'])
+def login_with_phone():
+    """تسجيل الدخول باستخدام رقم الهاتف"""
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'بيانات غير صالحة'}), 400
+    
+    phone = data.get('phone', '').strip()
+    password = data.get('password', '')
+    
+    if not phone or not password:
+        return jsonify({'error': 'رقم الهاتف وكلمة المرور مطلوبان'}), 400
+    
+    user = _get_user_by_phone(phone)
+    if not user:
+        return jsonify({'error': 'رقم الهاتف أو كلمة المرور غير صحيحة'}), 401
+    
+    if not user.get('is_active', True):
+        return jsonify({'error': 'الحساب غير نشط'}), 403
+    
+    if not check_password_hash(user['password_hash'], password):
+        return jsonify({'error': 'رقم الهاتف أو كلمة المرور غير صحيحة'}), 401
+    
+    access_token = generate_access_token(user['id'], user['email'], user['role'])
+    refresh_token, refresh_expires = generate_refresh_token(user['id'])
+    _store_refresh_token(user['id'], refresh_token, refresh_expires)
+    
+    return jsonify({
+        'access_token': access_token,
+        'refresh_token': refresh_token,
+        'user': {
+            'id': user['id'],
+            'email': user['email'],
+            'phone': user.get('phone'),
+            'full_name': user['full_name'],
+            'role': user['role']
+        }
+    }), 200

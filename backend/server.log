@@ -1,0 +1,9 @@
+nohup: ignoring input
+2026-04-05 18:24:59,483 - fcm_sender - INFO - ✅ Loaded service account credentials from credentials.json, project_id: bin-obaid-system
+Traceback (most recent call last):
+  File "/storage/emulated/0/my Python program 2025/Bin_Obaid_System_apk/backend/app_no_cache.py", line 1, in <module>
+    from app import create_app
+  File "/storage/emulated/0/my Python program 2025/Bin_Obaid_System_apk/backend/app.py", line 260, in <module>
+    @app.after_request
+     ^^^
+NameError: name 'app' is not defined
