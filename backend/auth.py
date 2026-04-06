@@ -720,7 +720,6 @@ def login_with_phone():
 
 # ========== نقاط نهاية التسجيل مع مراجعة المسؤول ==========
 @auth_bp.route('/users/check', methods=['GET'])
-def check_user_exists():
     phone = request.args.get('phone')
     if not phone:
         return jsonify({'exists': False}), 400
@@ -766,7 +765,6 @@ def register_request():
 
 # ========== نقاط نهاية التسجيل مع مراجعة المسؤول ==========
 @auth_bp.route('/users/check', methods=['GET'])
-def check_user_exists():
     phone = request.args.get('phone')
     if not phone:
         return jsonify({'exists': False}), 400
@@ -811,7 +809,6 @@ def register_request():
     return jsonify({'success': True, 'message': 'تم إرسال طلب التسجيل'}), 201
 
 @auth_bp.route('/users/check', methods=['GET'])
-def check_user_exists():
     phone = request.args.get('phone')
     if not phone:
         return jsonify({'exists': False}), 400
@@ -875,6 +872,18 @@ def generate_new_password(req_id):
 def mark_request_sent(req_id):
     supabase.table('password_reset_requests').update({'status': 'sent'}).eq('id', req_id).execute()
     return jsonify({'message': 'تم تحديث الحالة'}), 200
+
+@auth_bp.route('/users/check', methods=['GET'])
+    phone = request.args.get('phone')
+    if not phone:
+        return jsonify({'exists': False}), 400
+    res = supabase.table('users').select('phone').eq('phone', phone).execute()
+    if res.data:
+        return jsonify({'exists': True}), 200
+    pend = supabase.table('pending_users').select('phone').eq('phone', phone).execute()
+    if pend.data:
+        return jsonify({'exists': True, 'pending': True}), 200
+    return jsonify({'exists': False}), 200
 
 @auth_bp.route('/users/check', methods=['GET'])
 def check_user_exists():
