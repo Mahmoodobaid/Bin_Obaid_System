@@ -850,3 +850,28 @@ def register_request():
     from fcm_sender import send_sms
     send_sms(phone, "✅ تم استلام طلب التسجيل الخاص بك في بن عبيد التجارية. سيتم مراجعة طلبك وإعلامك عند الموافقة. شكراً لتسجيلك.")
     return jsonify({'success': True, 'message': 'تم إرسال طلب التسجيل'}), 201
+
+@auth_bp.route('/admin/password-reset-requests/<int:req_id>/generate', methods=['POST'])
+@login_required
+@role_required(['admin'])
+def generate_new_password(req_id):
+    import secrets, string
+    from werkzeug.security import generate_password_hash
+    req = supabase.table('password_reset_requests').select('*').eq('id', req_id).execute()
+    if not req.data:
+        return jsonify({'error': 'الطلب غير موجود'}), 404
+    phone = req.data[0]['phone']
+    alphabet = string.ascii_letters + string.digits
+    new_password = ''.join(secrets.choice(alphabet) for _ in range(8))
+    hashed = generate_password_hash(new_password)
+    supabase.table('users').update({'password_hash': hashed}).eq('phone', phone).execute()
+    # تحديث حالة الطلب إلى "sent" (لكننا سنستخدم mark-sent لاحقاً)
+    supabase.table('password_reset_requests').update({'status': 'sent'}).eq('id', req_id).execute()
+    return jsonify({'new_password': new_password}), 200
+
+@auth_bp.route('/admin/password-reset-requests/<int:req_id>/mark-sent', methods=['POST'])
+@login_required
+@role_required(['admin'])
+def mark_request_sent(req_id):
+    supabase.table('password_reset_requests').update({'status': 'sent'}).eq('id', req_id).execute()
+    return jsonify({'message': 'تم تحديث الحالة'}), 200
