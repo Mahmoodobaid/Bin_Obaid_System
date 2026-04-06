@@ -912,3 +912,16 @@ def check_user_exists():
     if pend.data:
         return jsonify({'exists': True, 'pending': True}), 200
     return jsonify({'exists': False}), 200
+
+@auth_bp.route('/users/check', methods=['GET'])
+def check_user_exists():
+    phone = request.args.get('phone')
+    if not phone:
+        return jsonify({'exists': False}), 400
+    res = supabase.table('users').select('phone').eq('phone', phone).execute()
+    if res.data:
+        return jsonify({'exists': True}), 200
+    pend = supabase.table('pending_users').select('phone').eq('phone', phone).execute()
+    if pend.data:
+        return jsonify({'exists': True, 'pending': True}), 200
+    return jsonify({'exists': False}), 200
