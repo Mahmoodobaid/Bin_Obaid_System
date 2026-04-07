@@ -583,6 +583,33 @@ def reject_user(user_id):
         logger.error(f"Error in reject_user: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+# ===================== إرسال تعليمات للعميل =====================
+
+@admin_bp.route('/admin/pending-users/<user_id>/send-instructions', methods=['POST'])
+@login_required
+@role_required(['admin'])
+def send_instructions(user_id):
+    try:
+        from supabase import create_client
+        from config import Config
+        supabase_client = create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
+        pending = supabase_client.table('pending_users').select('*').eq('id', user_id).execute()
+        if not pending.data:
+            return jsonify({'error': 'الطلب غير موجود'}), 404
+        ud = pending.data[0]
+        # إرسال رسالة تعليمية (عبر SMS إذا كان Twilio مفعلاً)
+        instructions = f"مرحباً {ud['full_name']}، لاستكمال تسجيلك في بن عبيد التجارية، يرجى التأكد من صحة بياناتك. سيتم إعلامك عند قبول الطلب. شكراً لتواصلك."
+        try:
+            from fcm_sender import send_sms
+            send_sms(ud['phone'], instructions)
+        except:
+            pass
+        LogModel.create(request.user['user_id'], f'إرسال تعليمات للرقم {ud["phone"]}', request.remote_addr)
+        return jsonify({'message': 'تم إرسال التعليمات بنجاح'}), 200
+    except Exception as e:
+        logger.error(f"Error in send_instructions: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 # ===================== طلبات إعادة تعيين كلمة المرور =====================
 
 @admin_bp.route('/admin/password-reset-requests', methods=['GET'])
