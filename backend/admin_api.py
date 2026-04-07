@@ -520,7 +520,10 @@ def admin_check():
 @role_required(['admin'])
 def get_pending_users():
     try:
-        result = supabase.table('pending_users').select('*').eq('status', 'pending').execute()
+        from supabase import create_client
+        from config import Config
+        supabase_client = create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
+        result = supabase_client.table('pending_users').select('*').eq('status', 'pending').execute()
         return jsonify(result.data), 200
     except Exception as e:
         logger.error(f"Error in get_pending_users: {str(e)}")
@@ -533,7 +536,10 @@ def approve_user(user_id):
     try:
         import secrets, string
         from werkzeug.security import generate_password_hash
-        pending = supabase.table('pending_users').select('*').eq('id', user_id).execute()
+        from supabase import create_client
+        from config import Config
+        supabase_client = create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
+        pending = supabase_client.table('pending_users').select('*').eq('id', user_id).execute()
         if not pending.data:
             return jsonify({'error': 'الطلب غير موجود'}), 404
         ud = pending.data[0]
@@ -548,8 +554,8 @@ def approve_user(user_id):
             'phone': ud['phone'],
             'is_active': True
         }
-        supabase.table('users').insert(new_user).execute()
-        supabase.table('pending_users').update({'status': 'approved'}).eq('id', user_id).execute()
+        supabase_client.table('users').insert(new_user).execute()
+        supabase_client.table('pending_users').update({'status': 'approved'}).eq('id', user_id).execute()
         # إرسال رسالة نصية (اختياري)
         try:
             from fcm_sender import send_sms
@@ -567,7 +573,10 @@ def approve_user(user_id):
 @role_required(['admin'])
 def reject_user(user_id):
     try:
-        supabase.table('pending_users').update({'status': 'rejected'}).eq('id', user_id).execute()
+        from supabase import create_client
+        from config import Config
+        supabase_client = create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
+        supabase_client.table('pending_users').update({'status': 'rejected'}).eq('id', user_id).execute()
         LogModel.create(request.user['user_id'], f'رفض طلب تسجيل {user_id}', request.remote_addr)
         return jsonify({'message': 'تم رفض الطلب'}), 200
     except Exception as e:
@@ -581,7 +590,10 @@ def reject_user(user_id):
 @role_required(['admin'])
 def get_reset_requests():
     try:
-        result = supabase.table('password_reset_requests').select('*').eq('status', 'pending').execute()
+        from supabase import create_client
+        from config import Config
+        supabase_client = create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
+        result = supabase_client.table('password_reset_requests').select('*').eq('status', 'pending').execute()
         return jsonify(result.data), 200
     except Exception as e:
         logger.error(f"Error in get_reset_requests: {str(e)}")
@@ -594,15 +606,18 @@ def generate_new_password(req_id):
     try:
         import secrets, string
         from werkzeug.security import generate_password_hash
-        req = supabase.table('password_reset_requests').select('*').eq('id', req_id).execute()
+        from supabase import create_client
+        from config import Config
+        supabase_client = create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
+        req = supabase_client.table('password_reset_requests').select('*').eq('id', req_id).execute()
         if not req.data:
             return jsonify({'error': 'الطلب غير موجود'}), 404
         phone = req.data[0]['phone']
         alphabet = string.ascii_letters + string.digits
         new_pass = ''.join(secrets.choice(alphabet) for _ in range(8))
         hashed = generate_password_hash(new_pass)
-        supabase.table('users').update({'password_hash': hashed}).eq('phone', phone).execute()
-        supabase.table('password_reset_requests').update({'status': 'sent'}).eq('id', req_id).execute()
+        supabase_client.table('users').update({'password_hash': hashed}).eq('phone', phone).execute()
+        supabase_client.table('password_reset_requests').update({'status': 'sent'}).eq('id', req_id).execute()
         LogModel.create(request.user['user_id'], f'إعادة تعيين كلمة المرور للرقم {phone}', request.remote_addr)
         return jsonify({'new_password': new_pass}), 200
     except Exception as e:
@@ -614,7 +629,10 @@ def generate_new_password(req_id):
 @role_required(['admin'])
 def mark_request_sent(req_id):
     try:
-        supabase.table('password_reset_requests').update({'status': 'sent'}).eq('id', req_id).execute()
+        from supabase import create_client
+        from config import Config
+        supabase_client = create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
+        supabase_client.table('password_reset_requests').update({'status': 'sent'}).eq('id', req_id).execute()
         return jsonify({'message': 'تم تحديث الحالة'}), 200
     except Exception as e:
         logger.error(f"Error in mark_request_sent: {str(e)}")
@@ -651,6 +669,7 @@ def update_profile():
         if 'phone' in data:
             updates['phone'] = data['phone']
         if 'email' in data:
+            from models import UserModel
             existing = UserModel.get_by_email(data['email'])
             if existing and existing['id'] != user_id:
                 return jsonify({'error': 'البريد الإلكتروني مستخدم بالفعل'}), 409
@@ -661,14 +680,12 @@ def update_profile():
             from werkzeug.security import generate_password_hash
             updates['password_hash'] = generate_password_hash(data['new_password'])
         if updates:
-            supabase.table('users').update(updates).eq('id', user_id).execute()
+            from supabase import create_client
+            from config import Config
+            supabase_client = create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
+            supabase_client.table('users').update(updates).eq('id', user_id).execute()
         LogModel.create(user_id, 'تحديث الملف الشخصي', request.remote_addr)
         return jsonify({'message': 'تم تحديث الملف الشخصي بنجاح'}), 200
     except Exception as e:
         logger.error(f"Error in update_profile: {str(e)}")
         return jsonify({'error': str(e)}), 500
-
-# استيراد supabase للاستخدام
-from supabase import create_client
-from config import Config
-supabase = create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
