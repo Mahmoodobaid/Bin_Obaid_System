@@ -1,6 +1,6 @@
 # =====================================================
 # admin_api.py - لوحة تحكم المسؤول المتكاملة
-# الإصدار 2.0 - مع إدارة طلبات التسجيل وإعادة تعيين كلمة المرور
+# الإصدار 2.1 - مع دعم إشعارات Firebase Cloud Messaging
 # =====================================================
 
 import logging
@@ -11,6 +11,12 @@ from supabase_storage import upload_image, delete_image
 from image_optimizer import optimize_image_to_target
 from datetime import datetime
 import uuid
+
+# استيراد مكتبات Firebase Admin (ستتم تهيئتها في app.py)
+try:
+    from firebase_admin import messaging
+except ImportError:
+    messaging = None
 
 logger = logging.getLogger(__name__)
 admin_bp = Blueprint('admin', __name__)
@@ -46,6 +52,28 @@ def get_stats():
         logger.error(f"Error in get_stats: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+
+@admin_bp.route('/admin/stats/charts', methods=['GET'])
+@login_required
+@role_required(['admin'])
+def get_charts_data():
+    """بيانات الرسم البياني لآخر 7 أيام"""
+    try:
+        from supabase import create_client
+        from config import Config
+        supabase_client = create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
+        # يمكنك تخصيص هذا الاستعلام حسب جدول عروض الأسعار لديك
+        result = supabase_client.table('quotes').select('created_at').gte('created_at', (datetime.now().replace(hour=0, minute=0, second=0) - __import__('datetime').timedelta(days=7)).isoformat()).execute()
+        # معالجة بسيطة لتجميع الأيام
+        dates = []
+        counts = []
+        # ... يمكنك تحسين هذا الجزء حسب احتياجك
+        return jsonify({'dates': dates, 'counts': counts}), 200
+    except Exception as e:
+        logger.error(f"Error in get_charts_data: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
 # ===================== إدارة المنتجات =====================
 
 @admin_bp.route('/admin/products', methods=['GET'])
@@ -67,6 +95,7 @@ def list_products_admin():
         logger.error(f"Error in list_products_admin: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+
 @admin_bp.route('/admin/products/<sku>', methods=['DELETE'])
 @login_required
 @role_required(['admin'])
@@ -82,6 +111,7 @@ def admin_delete_product(sku):
         logger.error(f"Error in admin_delete_product: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+
 @admin_bp.route('/admin/products/<sku>', methods=['PUT'])
 @login_required
 @role_required(['admin'])
@@ -96,6 +126,7 @@ def admin_update_product(sku):
     except Exception as e:
         logger.error(f"Error in admin_update_product: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
 
 @admin_bp.route('/admin/products', methods=['POST'])
 @login_required
@@ -113,6 +144,7 @@ def admin_create_product():
     except Exception as e:
         logger.error(f"Error in admin_create_product: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
 
 # ===================== إدارة الصور =====================
 
@@ -146,6 +178,7 @@ def admin_upload_images(sku):
         logger.error(f"Error in admin_upload_images: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+
 @admin_bp.route('/admin/products/<sku>/images/<int:image_id>', methods=['DELETE'])
 @login_required
 @role_required(['admin'])
@@ -165,6 +198,7 @@ def admin_delete_image(sku, image_id):
         logger.error(f"Error in admin_delete_image: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+
 # ===================== إدارة الصور المعلقة =====================
 
 @admin_bp.route('/admin/pending-images', methods=['GET'])
@@ -181,6 +215,7 @@ def get_pending_images():
         logger.error(f"Error in get_pending_images: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+
 @admin_bp.route('/admin/pending-images/<int:image_id>/approve', methods=['POST'])
 @login_required
 @role_required(['admin'])
@@ -195,6 +230,7 @@ def approve_pending_image(image_id):
         logger.error(f"Error in approve_pending_image: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+
 @admin_bp.route('/admin/pending-images/<int:image_id>/reject', methods=['DELETE'])
 @login_required
 @role_required(['admin'])
@@ -208,6 +244,7 @@ def reject_pending_image(image_id):
     except Exception as e:
         logger.error(f"Error in reject_pending_image: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
 
 # ===================== إدارة عروض الأسعار =====================
 
@@ -225,6 +262,7 @@ def list_quotes_admin():
     except Exception as e:
         logger.error(f"Error in list_quotes_admin: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
 
 @admin_bp.route('/admin/quotes/<int:quote_id>', methods=['GET'])
 @login_required
@@ -247,6 +285,7 @@ def get_quote_details(quote_id):
         logger.error(f"Error in get_quote_details: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+
 @admin_bp.route('/admin/quotes/<int:quote_id>/status', methods=['PUT'])
 @login_required
 @role_required(['admin'])
@@ -264,6 +303,7 @@ def update_quote_status(quote_id):
     except Exception as e:
         logger.error(f"Error in update_quote_status: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
 
 # ===================== إدارة المستخدمين =====================
 
@@ -284,6 +324,7 @@ def list_users_admin():
         logger.error(f"Error in list_users_admin: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+
 @admin_bp.route('/admin/users/<user_id>', methods=['GET'])
 @login_required
 @role_required(['admin'])
@@ -297,6 +338,7 @@ def get_user_details(user_id):
     except Exception as e:
         logger.error(f"Error in get_user_details: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
 
 @admin_bp.route('/admin/users/<user_id>/role', methods=['PUT'])
 @login_required
@@ -316,6 +358,7 @@ def change_user_role(user_id):
         logger.error(f"Error in change_user_role: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+
 @admin_bp.route('/admin/users/<user_id>/activate', methods=['POST'])
 @login_required
 @role_required(['admin'])
@@ -333,6 +376,7 @@ def toggle_user_activation(user_id):
         logger.error(f"Error in toggle_user_activation: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+
 # ===================== إدارة النماذج =====================
 
 @admin_bp.route('/admin/templates', methods=['GET'])
@@ -346,6 +390,7 @@ def list_templates():
     except Exception as e:
         logger.error(f"Error in list_templates: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
 
 @admin_bp.route('/admin/templates', methods=['POST'])
 @login_required
@@ -366,6 +411,7 @@ def create_template():
         logger.error(f"Error in create_template: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+
 @admin_bp.route('/admin/templates/<int:template_id>', methods=['PUT'])
 @login_required
 @role_required(['admin'])
@@ -381,6 +427,7 @@ def update_template(template_id):
         logger.error(f"Error in update_template: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+
 @admin_bp.route('/admin/templates/<int:template_id>', methods=['DELETE'])
 @login_required
 @role_required(['admin'])
@@ -395,6 +442,7 @@ def delete_template(template_id):
         logger.error(f"Error in delete_template: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+
 # ===================== إدارة الإعلانات =====================
 
 @admin_bp.route('/admin/promotions', methods=['GET'])
@@ -408,6 +456,7 @@ def list_promotions():
     except Exception as e:
         logger.error(f"Error in list_promotions: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
 
 @admin_bp.route('/admin/promotions', methods=['POST'])
 @login_required
@@ -429,6 +478,7 @@ def create_promotion():
         logger.error(f"Error in create_promotion: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+
 @admin_bp.route('/admin/promotions/<int:promo_id>', methods=['PUT'])
 @login_required
 @role_required(['admin'])
@@ -444,6 +494,7 @@ def update_promotion(promo_id):
         logger.error(f"Error in update_promotion: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+
 @admin_bp.route('/admin/promotions/<int:promo_id>', methods=['DELETE'])
 @login_required
 @role_required(['admin'])
@@ -457,6 +508,7 @@ def delete_promotion(promo_id):
     except Exception as e:
         logger.error(f"Error in delete_promotion: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
 
 # ===================== إدارة الإعدادات العامة =====================
 
@@ -473,6 +525,7 @@ def get_settings():
         logger.error(f"Error in get_settings: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+
 @admin_bp.route('/admin/settings', methods=['POST'])
 @login_required
 @role_required(['admin'])
@@ -486,6 +539,7 @@ def update_settings():
     except Exception as e:
         logger.error(f"Error in update_settings: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
 
 # ===================== سجل النشاطات =====================
 
@@ -505,6 +559,7 @@ def get_logs():
         logger.error(f"Error in get_logs: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+
 # ===================== التحقق من صلاحية المسؤول =====================
 
 @admin_bp.route('/admin/check', methods=['GET'])
@@ -512,6 +567,7 @@ def get_logs():
 @role_required(['admin'])
 def admin_check():
     return jsonify({'is_admin': True, 'user_id': request.user['user_id'], 'email': request.user['email']}), 200
+
 
 # ===================== طلبات التسجيل (pending_users) =====================
 
@@ -528,6 +584,7 @@ def get_pending_users():
     except Exception as e:
         logger.error(f"Error in get_pending_users: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
 
 @admin_bp.route('/admin/pending-users/<user_id>/approve', methods=['POST'])
 @login_required
@@ -568,6 +625,7 @@ def approve_user(user_id):
         logger.error(f"Error in approve_user: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+
 @admin_bp.route('/admin/pending-users/<user_id>/reject', methods=['DELETE'])
 @login_required
 @role_required(['admin'])
@@ -583,7 +641,6 @@ def reject_user(user_id):
         logger.error(f"Error in reject_user: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-# ===================== إرسال تعليمات للعميل =====================
 
 @admin_bp.route('/admin/pending-users/<user_id>/send-instructions', methods=['POST'])
 @login_required
@@ -597,7 +654,6 @@ def send_instructions(user_id):
         if not pending.data:
             return jsonify({'error': 'الطلب غير موجود'}), 404
         ud = pending.data[0]
-        # إرسال رسالة تعليمية (عبر SMS إذا كان Twilio مفعلاً)
         instructions = f"مرحباً {ud['full_name']}، لاستكمال تسجيلك في بن عبيد التجارية، يرجى التأكد من صحة بياناتك. سيتم إعلامك عند قبول الطلب. شكراً لتواصلك."
         try:
             from fcm_sender import send_sms
@@ -609,6 +665,7 @@ def send_instructions(user_id):
     except Exception as e:
         logger.error(f"Error in send_instructions: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
 
 # ===================== طلبات إعادة تعيين كلمة المرور =====================
 
@@ -625,6 +682,7 @@ def get_reset_requests():
     except Exception as e:
         logger.error(f"Error in get_reset_requests: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
 
 @admin_bp.route('/admin/password-reset-requests/<int:req_id>/generate', methods=['POST'])
 @login_required
@@ -651,6 +709,7 @@ def generate_new_password(req_id):
         logger.error(f"Error in generate_new_password: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+
 @admin_bp.route('/admin/password-reset-requests/<int:req_id>/mark-sent', methods=['POST'])
 @login_required
 @role_required(['admin'])
@@ -664,6 +723,7 @@ def mark_request_sent(req_id):
     except Exception as e:
         logger.error(f"Error in mark_request_sent: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
 
 # ===================== الملف الشخصي للمسؤول =====================
 
@@ -682,6 +742,7 @@ def get_profile():
     except Exception as e:
         logger.error(f"Error in get_profile: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
 
 @admin_bp.route('/admin/profile', methods=['PUT'])
 @login_required
@@ -716,3 +777,73 @@ def update_profile():
     except Exception as e:
         logger.error(f"Error in update_profile: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
+
+# ===================== إدارة توكنات FCM (Firebase Cloud Messaging) =====================
+
+@admin_bp.route('/api/fcm/register-token', methods=['POST'])
+@login_required
+def register_fcm_token():
+    """حفظ توكن FCM الخاص بجهاز المستخدم لإرسال الإشعارات"""
+    try:
+        data = request.json
+        token = data.get('token')
+        if not token:
+            return jsonify({'error': 'Token is required'}), 400
+
+        from supabase import create_client
+        from config import Config
+        supabase_client = create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
+        user_id = request.user['user_id']
+
+        # التحقق من وجود التوكن مسبقاً
+        existing = supabase_client.table('fcm_tokens').select('*').eq('token', token).execute()
+        if not existing.data:
+            supabase_client.table('fcm_tokens').insert({
+                'user_id': user_id,
+                'token': token,
+                'created_at': datetime.now().isoformat()
+            }).execute()
+        else:
+            # تحديث وقت آخر استخدام
+            supabase_client.table('fcm_tokens').update({
+                'last_used': datetime.now().isoformat()
+            }).eq('token', token).execute()
+
+        return jsonify({'message': 'Token registered successfully'}), 200
+    except Exception as e:
+        logger.error(f"Error registering FCM token: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+def send_fcm_notification(user_id, title, body, data=None):
+    """إرسال إشعار FCM إلى جميع أجهزة المستخدم باستخدام Firebase Admin SDK"""
+    if messaging is None:
+        logger.warning("Firebase Admin SDK not initialized. Cannot send FCM notification.")
+        return
+    try:
+        from supabase import create_client
+        from config import Config
+        supabase_client = create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
+        tokens_res = supabase_client.table('fcm_tokens').select('token').eq('user_id', user_id).execute()
+        if not tokens_res.data:
+            return
+
+        notification = messaging.Notification(title=title, body=body)
+        for token_row in tokens_res.data:
+            token = token_row['token']
+            message = messaging.Message(
+                notification=notification,
+                token=token,
+                data=data or {}
+            )
+            try:
+                response = messaging.send(message)
+                logger.info(f"FCM sent to {token}: {response}")
+            except Exception as e:
+                logger.error(f"FCM failed for token {token}: {e}")
+                # حذف التوكن غير الصالح
+                if 'invalid-registration-token' in str(e) or 'not-registered' in str(e):
+                    supabase_client.table('fcm_tokens').delete().eq('token', token).execute()
+    except Exception as e:
+        logger.error(f"Error sending FCM notification: {str(e)}")
