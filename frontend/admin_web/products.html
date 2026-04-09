@@ -2,91 +2,364 @@
 <html dir="rtl" lang="ar">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>المنتجات - بن عبيد</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>إدارة المنتجات - بن عبيد</title>
+    <!-- Bootstrap & Fonts -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         * { font-family: 'Cairo', 'Tahoma', sans-serif; }
         body { background-color: #f8f9fc; }
-        .sidebar { position: fixed; top: 0; right: 0; height: 100%; width: 280px; background: linear-gradient(135deg, #1e3c72, #2a5298); color: white; padding: 20px; z-index: 1000; }
+        .sidebar { position: fixed; top: 0; right: 0; height: 100%; width: 280px; background: linear-gradient(135deg, #1e3c72, #2a5298); color: white; padding: 20px; z-index: 1000; box-shadow: -2px 0 10px rgba(0,0,0,0.1); }
         .sidebar .logo { text-align: center; padding: 20px 0; border-bottom: 1px solid rgba(255,255,255,0.2); margin-bottom: 20px; }
-        .sidebar .nav-link { color: rgba(255,255,255,0.8); padding: 12px 15px; border-radius: 10px; display: flex; align-items: center; gap: 12px; text-decoration: none; }
+        .sidebar .logo h3 { font-size: 1.5rem; margin: 0; }
+        .sidebar .nav-link { color: rgba(255,255,255,0.8); padding: 12px 15px; border-radius: 10px; display: flex; align-items: center; gap: 12px; text-decoration: none; transition: 0.3s; }
         .sidebar .nav-link:hover, .sidebar .nav-link.active { background: rgba(255,255,255,0.2); color: white; }
         .main-content { margin-right: 280px; padding: 20px; }
         .card { border: none; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
         .card-header { background: white; border-bottom: 1px solid #e9ecef; padding: 15px 20px; font-weight: bold; border-radius: 15px 15px 0 0; }
-        .product-image { width: 50px; height: 50px; object-fit: cover; border-radius: 8px; }
+        .product-img { width: 50px; height: 50px; object-fit: cover; border-radius: 8px; background: #f1f1f1; }
         .table th, .table td { vertical-align: middle; text-align: center; }
-        @media (max-width: 768px) { .sidebar { width: 70px; } .sidebar .logo h3, .sidebar .logo p, .sidebar .nav-link span { display: none; } .sidebar .nav-link { justify-content: center; } .main-content { margin-right: 70px; } }
+        .toast-container { position: fixed; top: 20px; left: 20px; z-index: 9999; }
+        .image-preview-container { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+        .image-preview-item { position: relative; width: 80px; height: 80px; border-radius: 8px; overflow: hidden; border: 1px solid #ddd; }
+        .image-preview-item img { width: 100%; height: 100%; object-fit: cover; }
+        .image-preview-item .btn-remove { position: absolute; top: 2px; right: 2px; background: rgba(220,53,69,0.8); color: white; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 12px; line-height: 1; }
+        @media (max-width: 768px) { .sidebar { width: 70px; padding: 10px; } .sidebar .logo h3, .sidebar .logo p, .sidebar .nav-link span { display: none; } .sidebar .nav-link { justify-content: center; } .main-content { margin-right: 70px; } }
     </style>
 </head>
 <body>
+
+<!-- الشريط الجانبي -->
 <div class="sidebar">
-    <div class="logo"><h3><i class="fas fa-store"></i> بن عبيد</h3><p>نظام إدارة المخازن</p></div>
+    <div class="logo">
+        <h3><i class="fas fa-store"></i> بن عبيد</h3>
+        <p>نظام إدارة المخازن</p>
+    </div>
     <nav>
         <a href="dashboard.html" class="nav-link"><i class="fas fa-tachometer-alt"></i><span>لوحة التحكم</span></a>
         <a href="products.html" class="nav-link active"><i class="fas fa-boxes"></i><span>المنتجات</span></a>
         <a href="promotions.html" class="nav-link"><i class="fas fa-tags"></i><span>الإعلانات</span></a>
         <a href="templates.html" class="nav-link"><i class="fas fa-file-alt"></i><span>النماذج</span></a>
         <a href="licenses.html" class="nav-link"><i class="fas fa-key"></i><span>التراخيص</span></a>
-        <a href="profile.html" class="nav-link"><i class="fas fa-user-circle"></i><span>الملف الشخصي</span></a>
         <a href="pending_users.html" class="nav-link"><i class="fas fa-user-plus"></i><span>طلبات التسجيل</span></a>
+        <a href="reset_requests.html" class="nav-link"><i class="fas fa-key"></i><span>طلبات كلمة المرور</span></a>
+        <a href="profile.html" class="nav-link"><i class="fas fa-user-circle"></i><span>الملف الشخصي</span></a>
         <a href="settings.html" class="nav-link"><i class="fas fa-cog"></i><span>الإعدادات</span></a>
     </nav>
-    <div class="position-absolute bottom-0 start-0 w-100 p-3"><hr><a href="#" onclick="logout()" class="nav-link"><i class="fas fa-sign-out-alt"></i><span>تسجيل خروج</span></a></div>
+    <div class="position-absolute bottom-0 start-0 w-100 p-3">
+        <hr style="border-color: rgba(255,255,255,0.2);">
+        <a href="#" onclick="logout()" class="nav-link"><i class="fas fa-sign-out-alt"></i><span>تسجيل خروج</span></a>
+    </div>
 </div>
+
+<!-- المحتوى الرئيسي -->
 <div class="main-content">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2><i class="fas fa-boxes"></i> إدارة المنتجات</h2>
-        <div><button class="btn btn-success" onclick="alert('سيتم إضافة الوظيفة لاحقاً')">منتج جديد</button></div>
+        <button class="btn btn-primary" onclick="openAddModal()">
+            <i class="fas fa-plus-circle"></i> إضافة منتج جديد
+        </button>
     </div>
+
     <div class="card">
         <div class="card-header">قائمة المنتجات</div>
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover mb-0">
-                    <thead class="table-light"><tr><th>الصورة</th><th>SKU</th><th>الاسم</th><th>الفئة</th><th>المخزون</th><th>السعر</th><th>الإجراءات</th></tr></thead>
-                    <tbody id="productsTableBody"><tr><td colspan="7" class="text-center py-4">جاري التحميل...</td></tr></tbody>
+                    <thead class="table-light">
+                        <tr><th>الصورة</th><th>SKU</th><th>الاسم</th><th>الفئة</th><th>المخزون</th><th>السعر</th><th>الإجراءات</th></tr>
+                    </thead>
+                    <tbody id="productsTableBody">
+                        <tr><td colspan="7" class="text-center py-4">جاري التحميل...</td></tr>
+                    </tbody>
                 </table>
             </div>
         </div>
     </div>
 </div>
+
+<!-- مودال إضافة / تعديل منتج -->
+<div class="modal fade" id="productModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="productModalTitle">إضافة منتج جديد</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="productForm">
+                    <input type="hidden" id="editingSku" value="">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">SKU (الرمز التعريفي) <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="sku" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">اسم المنتج <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="name" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">الفئة</label>
+                            <input type="text" class="form-control" id="category">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">الوحدة</label>
+                            <input type="text" class="form-control" id="unit" placeholder="حبة، كرتون...">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">سعر الوحدة (ريال) <span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" class="form-control" id="unit_price" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">سعر الجملة</label>
+                            <input type="number" step="0.01" class="form-control" id="wholesale_price">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">المخزون</label>
+                            <input type="number" class="form-control" id="stock_quantity" value="0">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">الوصف</label>
+                        <textarea class="form-control" id="description" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">الصور</label>
+                        <input type="file" class="form-control" id="imageUpload" multiple accept="image/*">
+                        <div class="image-preview-container" id="imagePreviewContainer"></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-primary" id="saveProductBtn" onclick="saveProduct()">حفظ</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container"></div>
+
+<!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/auth.js"></script>
 <script>
-    function getToken() { return localStorage.getItem('admin_token'); }
-    function logout() { localStorage.removeItem('admin_token'); window.location.href = 'index.html'; }
+    const productModal = new bootstrap.Modal(document.getElementById('productModal'));
+    let selectedFiles = []; // لتخزين الملفات المختارة مؤقتاً
+
+    // دالة عرض الإشعارات
+    function showToast(message, type='success') {
+        const container = document.querySelector('.toast-container') || (() => {
+            const div = document.createElement('div');
+            div.className = 'toast-container position-fixed top-0 start-0 p-3';
+            document.body.appendChild(div);
+            return div;
+        })();
+        const id = 'toast-' + Date.now();
+        const bg = type==='success'?'bg-success':(type==='danger'?'bg-danger':'bg-warning');
+        const icon = type==='success'?'fa-check-circle':(type==='danger'?'fa-exclamation-circle':'fa-info-circle');
+        const txt = type==='success'?'نجاح':(type==='danger'?'خطأ':'تنبيه');
+        const html = `<div id="${id}" class="toast ${bg} text-white" role="alert" data-bs-autohide="true" data-bs-delay="4000"><div class="toast-header ${bg} text-white"><i class="fas ${icon} me-2"></i><strong class="me-auto">${txt}</strong><button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button></div><div class="toast-body">${message}</div></div>`;
+        container.insertAdjacentHTML('beforeend', html);
+        const el = document.getElementById(id);
+        new bootstrap.Toast(el).show();
+        el.addEventListener('hidden.bs.toast', () => el.remove());
+    }
+
+    // تحميل المنتجات
     async function loadProducts() {
-        const token = getToken();
-        if (!token) { window.location.href = 'index.html'; return; }
         try {
-            const res = await fetch('/api/admin/products?limit=1000', { headers: { 'Authorization': `Bearer ${token}` } });
-            if (res.status === 401) { logout(); return; }
-            const data = await res.json();
+            const data = await apiRequest('/admin/products');
             const products = data.products || [];
             const tbody = document.getElementById('productsTableBody');
-            if (!products.length) { tbody.innerHTML = '<tr><td colspan="7" class="text-center">لا توجد منتجات</td></tr>'; return; }
-            tbody.innerHTML = products.map(p => `
+            if (products.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center">لا توجد منتجات مضافة</td></tr>';
+                return;
+            }
+            tbody.innerHTML = products.map(p => {
+                // محاولة الحصول على أول صورة من الصور المرتبطة (إن وجدت)
+                const firstImage = (p.images && p.images.length > 0) ? p.images[0].image_url : 'https://via.placeholder.com/50';
+                return `
                 <tr>
-                    <td><img src="${p.first_image || 'https://via.placeholder.com/50'}" class="product-image" onerror="this.src='https://via.placeholder.com/50'"></td>
+                    <td><img src="${firstImage}" class="product-img" onerror="this.src='https://via.placeholder.com/50'"></td>
                     <td><code>${p.sku}</code></td>
                     <td>${p.name}</td>
                     <td>${p.category || '-'}</td>
-                    <td class="${p.quantity_in_stock < 10 ? 'text-danger fw-bold' : ''}">${p.quantity_in_stock}</td>
+                    <td class="${p.stock_quantity < 10 ? 'text-danger fw-bold' : ''}">${p.stock_quantity || 0}</td>
                     <td>${p.unit_price} ريال</td>
-                    <td><button class="btn btn-sm btn-danger" onclick="deleteProduct('${p.sku}')"><i class="fas fa-trash"></i></button></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary me-1" onclick="editProduct('${p.sku}')"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteProduct('${p.sku}')"><i class="fas fa-trash"></i></button>
+                    </td>
                 </tr>
-            `).join('');
-        } catch(e) { console.error(e); tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger">فشل تحميل المنتجات</td></tr>'; }
+            `}).join('');
+        } catch(e) {
+            showToast('فشل تحميل المنتجات', 'danger');
+        }
     }
+
+    // فتح المودال للإضافة
+    function openAddModal() {
+        document.getElementById('productModalTitle').innerText = 'إضافة منتج جديد';
+        document.getElementById('productForm').reset();
+        document.getElementById('editingSku').value = '';
+        document.getElementById('sku').disabled = false;
+        selectedFiles = [];
+        updateImagePreview();
+        productModal.show();
+    }
+
+    // تعديل منتج
+    async function editProduct(sku) {
+        try {
+            // جلب تفاصيل المنتج
+            const product = await apiRequest(`/products/${sku}`); // نقطة عامة لكن سنستخدمها
+            if (!product) return;
+            document.getElementById('productModalTitle').innerText = 'تعديل منتج';
+            document.getElementById('editingSku').value = sku;
+            document.getElementById('sku').value = product.sku;
+            document.getElementById('sku').disabled = true;
+            document.getElementById('name').value = product.name;
+            document.getElementById('category').value = product.category || '';
+            document.getElementById('unit').value = product.unit || '';
+            document.getElementById('unit_price').value = product.unit_price;
+            document.getElementById('wholesale_price').value = product.wholesale_price || '';
+            document.getElementById('stock_quantity').value = product.stock_quantity || 0;
+            document.getElementById('description').value = product.description || '';
+            selectedFiles = []; // لا نحتفظ بالصور القديمة كملفات للرفع
+            updateImagePreview();
+            productModal.show();
+        } catch(e) {
+            showToast('فشل تحميل بيانات المنتج', 'danger');
+        }
+    }
+
+    // معاينة الصور المختارة
+    document.getElementById('imageUpload').addEventListener('change', function(e) {
+        selectedFiles = Array.from(e.target.files);
+        updateImagePreview();
+    });
+
+    function updateImagePreview() {
+        const container = document.getElementById('imagePreviewContainer');
+        container.innerHTML = '';
+        selectedFiles.forEach((file, index) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const div = document.createElement('div');
+                div.className = 'image-preview-item';
+                div.innerHTML = `
+                    <img src="${e.target.result}">
+                    <button class="btn-remove" onclick="removeSelectedImage(${index})">&times;</button>
+                `;
+                container.appendChild(div);
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    window.removeSelectedImage = function(index) {
+        selectedFiles.splice(index, 1);
+        updateImagePreview();
+        // تحديث input file ليعكس التغيير
+        const input = document.getElementById('imageUpload');
+        const dt = new DataTransfer();
+        selectedFiles.forEach(f => dt.items.add(f));
+        input.files = dt.files;
+    };
+
+    // حفظ المنتج (إضافة أو تعديل)
+    async function saveProduct() {
+        const skuField = document.getElementById('sku');
+        const nameField = document.getElementById('name');
+        const priceField = document.getElementById('unit_price');
+        
+        if (!skuField.value || !nameField.value || !priceField.value) {
+            showToast('الرجاء ملء الحقول المطلوبة', 'danger');
+            return;
+        }
+
+        const editingSku = document.getElementById('editingSku').value;
+        const payload = {
+            sku: skuField.value,
+            name: nameField.value,
+            category: document.getElementById('category').value,
+            unit: document.getElementById('unit').value,
+            unit_price: parseFloat(priceField.value),
+            wholesale_price: document.getElementById('wholesale_price').value ? parseFloat(document.getElementById('wholesale_price').value) : null,
+            stock_quantity: parseInt(document.getElementById('stock_quantity').value) || 0,
+            description: document.getElementById('description').value
+        };
+
+        try {
+            if (editingSku) {
+                // تعديل
+                await apiRequest(`/admin/products/${editingSku}`, 'PUT', payload);
+                showToast('تم تحديث المنتج بنجاح');
+            } else {
+                // إضافة
+                await apiRequest('/admin/products', 'POST', payload);
+                showToast('تم إضافة المنتج بنجاح');
+            }
+
+            // رفع الصور إذا وجدت (للمنتج الجديد أو المعدل)
+            const targetSku = editingSku || payload.sku;
+            if (selectedFiles.length > 0) {
+                const formData = new FormData();
+                selectedFiles.forEach(f => formData.append('images', f));
+                // رفع الصور عبر نقطة مخصصة
+                const token = localStorage.getItem('admin_token');
+                const res = await fetch(`/api/admin/products/${targetSku}/upload-images`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+                if (!res.ok) {
+                    const err = await res.json();
+                    showToast(err.error || 'فشل رفع الصور', 'warning');
+                } else {
+                    showToast('تم رفع الصور بنجاح');
+                }
+            }
+
+            productModal.hide();
+            loadProducts();
+        } catch(e) {
+            showToast(e.message || 'حدث خطأ أثناء الحفظ', 'danger');
+        }
+    }
+
+    // حذف منتج
     async function deleteProduct(sku) {
-        if (!confirm('هل أنت متأكد؟')) return;
-        const token = getToken();
-        await fetch(`/api/admin/products/${sku}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
-        loadProducts();
+        if (!confirm(`هل أنت متأكد من حذف المنتج ${sku}؟`)) return;
+        try {
+            await apiRequest(`/admin/products/${sku}`, 'DELETE');
+            showToast('تم حذف المنتج بنجاح');
+            loadProducts();
+        } catch(e) {
+            showToast('فشل حذف المنتج', 'danger');
+        }
     }
-    window.onload = () => { if (!getToken()) window.location.href = 'index.html'; else loadProducts(); };
+
+    function logout() {
+        localStorage.removeItem('admin_token');
+        window.location.href = 'index.html';
+    }
+
+    // التحقق من تسجيل الدخول عند التحميل
+    window.onload = async () => {
+        if (!localStorage.getItem('admin_token')) {
+            window.location.href = 'index.html';
+            return;
+        }
+        loadProducts();
+    };
 </script>
 </body>
 </html>
