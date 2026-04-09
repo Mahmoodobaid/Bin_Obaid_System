@@ -2,11 +2,16 @@
 <html dir="rtl" lang="ar">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>لوحة التحكم - بن عبيد</title>
+    
+    <!-- Bootstrap & Fonts -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
     <style>
         * {
             font-family: 'Cairo', 'Tahoma', sans-serif;
@@ -60,6 +65,7 @@
             display: flex;
             align-items: center;
             gap: 12px;
+            text-decoration: none;
         }
         
         .sidebar .nav-link:hover {
@@ -126,7 +132,7 @@
         }
         
         .recent-item {
-            padding: 12px;
+            padding: 12px 20px;
             border-bottom: 1px solid #e9ecef;
             transition: background 0.2s;
         }
@@ -147,6 +153,17 @@
         .status-rejected { background: #dc3545; color: #fff; }
         .status-sent { background: #17a2b8; color: #fff; }
         
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #dc3545;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 10px;
+        }
+        
         @media (max-width: 768px) {
             .sidebar {
                 width: 70px;
@@ -165,8 +182,15 @@
                 margin-right: 70px;
             }
         }
+        
+        /* Toast container */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 9999;
+        }
     </style>
-    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
@@ -203,9 +227,33 @@
             </a>
         </div>
         <div class="nav-item">
-        <a href="pending_users.html" class="nav-link"><i class="fas fa-user-plus"></i><span>طلبات التسجيل</span></a>
+            <a href="licenses.html" class="nav-link">
+                <i class="fas fa-key"></i>
+                <span>التراخيص</span>
+            </a>
+        </div>
+        <div class="nav-item">
+            <a href="pending_users.html" class="nav-link">
+                <i class="fas fa-user-plus"></i>
+                <span>طلبات التسجيل</span>
+                <span id="pendingBadge" class="notification-badge" style="display:none;">0</span>
+            </a>
+        </div>
+        <div class="nav-item">
+            <a href="reset_requests.html" class="nav-link">
+                <i class="fas fa-key"></i>
+                <span>طلبات كلمة المرور</span>
+                <span id="resetBadge" class="notification-badge" style="display:none;">0</span>
+            </a>
+        </div>
+        <div class="nav-item">
+            <a href="profile.html" class="nav-link">
+                <i class="fas fa-user-circle"></i>
+                <span>الملف الشخصي</span>
+            </a>
+        </div>
+        <div class="nav-item">
             <a href="settings.html" class="nav-link">
-        <a href="licenses.html" class="nav-link"><i class="fas fa-key"></i><span>التراخيص</span></a>
                 <i class="fas fa-cog"></i>
                 <span>الإعدادات</span>
             </a>
@@ -234,7 +282,7 @@
         </div>
     </div>
     
-    <!-- بطاقات الإحصائيات -->
+    <!-- بطاقات الإحصائيات (الصف الأول) -->
     <div class="row g-4 mb-4">
         <div class="col-md-3">
             <div class="stat-card" style="border-right-color: #4e73df;">
@@ -282,6 +330,7 @@
         </div>
     </div>
     
+    <!-- بطاقات الإحصائيات (الصف الثاني) -->
     <div class="row g-4 mb-4">
         <div class="col-md-3">
             <div class="stat-card" style="border-right-color: #e74a3b;">
@@ -339,7 +388,7 @@
         </div>
     </div>
     
-    <!-- آخر الطلبات -->
+    <!-- آخر عروض الأسعار -->
     <div class="card">
         <div class="card-header">
             <i class="fas fa-history"></i> آخر عروض الأسعار
@@ -352,34 +401,58 @@
     </div>
 </div>
 
+<!-- Toast Container -->
+<div class="toast-container"></div>
+
+<!-- ==================== Scripts ==================== -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-messaging-compat.js"></script>
+
+<!-- ملفات المشروع -->
 <script src="js/auth.js"></script>
 <script src="js/interactive.js"></script>
+<script src="js/firebase-init.js"></script>
+
 <script>
     let salesChart = null;
     
-    // التحقق من تسجيل الدخول
-    (async function() { await loadCurrentUser(); await showWelcomeMessage(); showPageGuide("لوحة التحكم", "هنا يمكنك مشاهدة ملخص أداء المتجر: عدد المنتجات، العملاء، الطلبات، والإحصائيات اليومية. يمكنك أيضاً مراقبة آخر النشاطات والوصول السريع إلى جميع الأقسام."); })();
-    window.onload = function() {
-        const token = localStorage.getItem('admin_token');
-        if (!token) {
-            window.location.href = 'index.html';
-            return;
-        }
-        loadDashboardData();
-        loadChartData();
-        loadRecentQuotes();
-    };
+    // ========== دالة عرض التوست (إذا لم تكن موجودة) ==========
+    if (typeof showToast === 'undefined') {
+        window.showToast = function(message, type = 'success') {
+            const container = document.querySelector('.toast-container') || (() => {
+                const div = document.createElement('div');
+                div.className = 'toast-container position-fixed top-0 start-0 p-3';
+                document.body.appendChild(div);
+                return div;
+            })();
+            const id = 'toast-' + Date.now();
+            const bg = type === 'success' ? 'bg-success' : (type === 'danger' ? 'bg-danger' : 'bg-warning');
+            const icon = type === 'success' ? 'fa-check-circle' : (type === 'danger' ? 'fa-exclamation-circle' : 'fa-info-circle');
+            const txt = type === 'success' ? 'نجاح' : (type === 'danger' ? 'خطأ' : 'تنبيه');
+            const html = `
+                <div id="${id}" class="toast ${bg} text-white" role="alert" data-bs-autohide="true" data-bs-delay="4000">
+                    <div class="toast-header ${bg} text-white">
+                        <i class="fas ${icon} me-2"></i>
+                        <strong class="me-auto">${txt}</strong>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+                    </div>
+                    <div class="toast-body">${message}</div>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', html);
+            const el = document.getElementById(id);
+            new bootstrap.Toast(el).show();
+            el.addEventListener('hidden.bs.toast', () => el.remove());
+        };
+    }
     
+    // ========== تحميل البيانات ==========
     async function loadDashboardData() {
         try {
-            const response = await fetch('/api/admin/stats', {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('admin_token')}` }
-            });
-            if (response.status === 401) {
-                window.location.href = 'index.html';
-                return;
-            }
-            const data = await response.json();
+            const data = await apiRequest('/admin/stats');
             
             document.getElementById('productCount').innerText = data.productCount || 0;
             document.getElementById('customerCount').innerText = data.customerCount || 0;
@@ -391,17 +464,42 @@
             document.getElementById('pendingImages').innerText = data.pendingImages || 0;
             
             document.getElementById('lastUpdate').innerText = 'آخر تحديث: ' + new Date().toLocaleTimeString('ar');
+            
+            // إشعارات الطلبات المعلقة
+            try {
+                const pendingUsers = await apiRequest('/admin/pending-users');
+                const pendingCount = pendingUsers.length || 0;
+                const badge = document.getElementById('pendingBadge');
+                if (pendingCount > 0) {
+                    badge.style.display = 'inline-block';
+                    badge.innerText = pendingCount;
+                    showToast(`📋 لديك ${pendingCount} طلب تسجيل جديد`, 'warning');
+                } else {
+                    badge.style.display = 'none';
+                }
+            } catch (e) {}
+            
+            try {
+                const resetReqs = await apiRequest('/admin/password-reset-requests');
+                const resetCount = resetReqs.length || 0;
+                const badge = document.getElementById('resetBadge');
+                if (resetCount > 0) {
+                    badge.style.display = 'inline-block';
+                    badge.innerText = resetCount;
+                    showToast(`🔑 لديك ${resetCount} طلب إعادة تعيين كلمة مرور`, 'warning');
+                } else {
+                    badge.style.display = 'none';
+                }
+            } catch (e) {}
+            
         } catch(e) {
-            console.error('Error loading stats:', e);
+            console.error('خطأ في تحميل الإحصائيات:', e);
         }
     }
     
     async function loadChartData() {
         try {
-            const response = await fetch('/api/admin/stats/charts', {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('admin_token')}` }
-            });
-            const data = await response.json();
+            const data = await apiRequest('/admin/stats/charts');
             
             if (salesChart) {
                 salesChart.destroy();
@@ -411,10 +509,10 @@
             salesChart = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: data.dates,
+                    labels: data.dates || [],
                     datasets: [{
                         label: 'عدد الطلبات',
-                        data: data.counts,
+                        data: data.counts || [],
                         borderColor: '#4e73df',
                         backgroundColor: 'rgba(78, 115, 223, 0.05)',
                         fill: true,
@@ -430,16 +528,13 @@
                 }
             });
         } catch(e) {
-            console.error('Error loading chart:', e);
+            console.error('خطأ في تحميل الرسم البياني:', e);
         }
     }
     
     async function loadRecentQuotes() {
         try {
-            const response = await fetch('/api/admin/quotes?limit=5', {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('admin_token')}` }
-            });
-            const data = await response.json();
+            const data = await apiRequest('/admin/quotes?limit=5');
             const quotes = data.quotes || [];
             
             const container = document.getElementById('recentQuotesList');
@@ -456,12 +551,12 @@
                     </div>
                     <div>
                         <span class="status-badge status-${quote.status}">${getStatusText(quote.status)}</span>
-                        <span class="ms-3 fw-bold">${quote.total_amount} ريال</span>
+                        <span class="ms-3 fw-bold">${quote.total_amount || 0} ريال</span>
                     </div>
                 </div>
             `).join('');
         } catch(e) {
-            console.error('Error loading recent quotes:', e);
+            console.error('خطأ في تحميل آخر العروض:', e);
         }
     }
     
@@ -481,8 +576,39 @@
         window.location.href = 'index.html';
     }
     
-    // تحديث تلقائي كل 60 ثانية
-    setInterval(refreshData, 60000);
+    // ========== التهيئة عند التحميل ==========
+    (async function() {
+        // التحقق من تسجيل الدخول
+        const token = localStorage.getItem('admin_token');
+        if (!token) {
+            window.location.href = 'index.html';
+            return;
+        }
+        
+        // تهيئة التفاعلات الذكية (ترحيب، دليل، رسائل تحفيزية)
+        if (typeof initInteractive === 'function') {
+            await initInteractive();
+            // إضافة دليل خاص بلوحة التحكم
+            if (typeof showPageGuide === 'function') {
+                showPageGuide('لوحة التحكم', 'هنا يمكنك مشاهدة ملخص أداء المتجر: عدد المنتجات، العملاء، الطلبات، والإحصائيات اليومية. يمكنك أيضاً مراقبة آخر النشاطات والوصول السريع إلى جميع الأقسام.');
+            }
+        }
+        
+        // طلب إذن الإشعارات (Firebase)
+        if (typeof requestNotificationPermission === 'function') {
+            setTimeout(() => {
+                requestNotificationPermission();
+            }, 1000);
+        }
+        
+        // تحميل بيانات اللوحة
+        loadDashboardData();
+        loadChartData();
+        loadRecentQuotes();
+        
+        // تحديث تلقائي كل 60 ثانية
+        setInterval(refreshData, 60000);
+    })();
 </script>
 </body>
 </html>
