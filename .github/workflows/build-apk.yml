@@ -1,39 +1,54 @@
-name: Build Flutter APK for Bin Obaid
+# .github/workflows/build-apk.yml
+name: بناء تطبيق بن عبيد تلقائياً (Flutter)
 
 on:
   push:
-    branches: [ main ]
+    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
-  build-apk:
+  build:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup Java
+      - name: جلب الكود من المستودع
+        uses: actions/checkout@v4
+
+      - name: إعداد بيئة جافا
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
-          
-      - name: Setup Flutter
+
+      - name: إعداد بيئة Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.22.0'
-          
-      - name: Navigate to frontend and get dependencies
+          channel: 'stable'
+
+      - name: التحقق من وجود مجلد frontend
+        run: |
+          if [ ! -d "frontend" ]; then
+            echo "❌ مجلد frontend غير موجود!"
+            exit 1
+          fi
+          if [ ! -f "frontend/pubspec.yaml" ]; then
+            echo "❌ ملف pubspec.yaml غير موجود في frontend!"
+            exit 1
+          fi
+
+      - name: تثبيت التبعيات
         run: |
           cd frontend
           flutter pub get
-          
-      - name: Build APK (debug)
+
+      - name: بناء ملف APK (مع تجاوز مشكلة v1 embedding)
         run: |
           cd frontend
-          flutter build apk --debug
-          
-      - name: Upload APK
+          flutter build apk --debug --target-platform android-arm,android-arm64
+
+      - name: رفع ملف APK
         uses: actions/upload-artifact@v4
         with:
-          name: bin-obaid-app
+          name: تطبيق-بن-عبيد
           path: frontend/build/app/outputs/flutter-apk/app-debug.apk
