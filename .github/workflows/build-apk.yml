@@ -1,4 +1,4 @@
-name: بناء تطبيق بن عبيد (مع تصحيح المسار)
+name: بناء تطبيق بن عبيد (إنشاء جديد)
 
 on:
   push:
@@ -22,32 +22,33 @@ jobs:
         with:
           flutter-version: '3.22.0'
 
-      - name: إعادة إنشاء android
+      - name: إنشاء مشروع Flutter جديد ونسخ المصادر
         run: |
-          cd frontend
-          rm -rf android
-          flutter create --platforms=android .
+          # إنشاء مشروع جديد
+          flutter create --platforms=android --org com.binobaid temp_project
+          cd temp_project
+          
+          # حذف lib و pubspec.yaml الأصليين
+          rm -rf lib pubspec.yaml
+          
+          # نسخ مصادر المشروع الحقيقي من frontend
+          cp -r ../frontend/lib .
+          cp ../frontend/pubspec.yaml .
+          
+          # نسخ مجلد assets إذا كان موجوداً
+          if [ -d "../frontend/assets" ]; then cp -r ../frontend/assets .; fi
+          if [ -d "../frontend/images" ]; then cp -r ../frontend/images .; fi
+          
+          # تثبيت التبعيات
           flutter pub get
 
       - name: بناء APK
         run: |
-          cd frontend
+          cd temp_project
           flutter build apk --debug
 
-      - name: البحث عن ملف APK المُنتَج
-        run: |
-          echo "=== البحث عن ملفات APK ==="
-          find . -name "*.apk" 2>/dev/null
-          echo "=== محتويات مجلد build ==="
-          ls -la frontend/build/ || echo "لا يوجد مجلد build"
-          ls -la frontend/build/app/outputs/ || echo "لا يوجد مجلد outputs"
-          ls -la frontend/build/app/outputs/flutter-apk/ || echo "لا يوجد مجلد flutter-apk"
-
-      - name: رفع أي ملف APK موجود
+      - name: رفع APK
         uses: actions/upload-artifact@v4
         with:
           name: تطبيق-بن-عبيد
-          path: |
-            frontend/build/app/outputs/flutter-apk/*.apk
-            frontend/build/app/outputs/apk/debug/*.apk
-            **/build/**/*.apk
+          path: temp_project/build/app/outputs/flutter-apk/app-debug.apk
