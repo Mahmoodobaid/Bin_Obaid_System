@@ -1,0 +1,39 @@
+name: Build Flutter APK for Bin Obaid
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.22.0'
+          
+      - name: Navigate to frontend and get dependencies
+        run: |
+          cd frontend
+          flutter pub get
+          
+      - name: Build APK (debug)
+        run: |
+          cd frontend
+          flutter build apk --debug
+          
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: bin-obaid-app
+          path: frontend/build/app/outputs/flutter-apk/app-debug.apk
