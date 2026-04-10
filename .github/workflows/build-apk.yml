@@ -1,44 +1,50 @@
-# .github/workflows/build-apk.yml
-name: بناء تطبيق بن عبيد (إعادة إنشاء android)
+name: بناء تطبيق بن عبيد (تشخيص متقدم)
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: جلب الكود
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: إعداد Java
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: إعداد Flutter
+      - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.22.0'
 
-      - name: حذف android القديم وإعادة إنشائه
+      - name: عرض بيئة Flutter
+        run: flutter doctor -v
+
+      - name: إعادة إنشاء android بالكامل
         run: |
           cd frontend
           rm -rf android
-          flutter create --platforms=android .
+          flutter create --platforms=android --org com.binobaid .
           flutter pub get
 
-      - name: بناء APK
+      - name: محاولة البناء مع تفاصيل verbose
         run: |
           cd frontend
-          flutter build apk --debug
+          flutter build apk --debug --verbose 2>&1 | tee build_log.txt
+          # إذا فشل، نعرض آخر 50 سطراً من الخطأ
+          if [ $? -ne 0 ]; then
+            echo "===== BUILD FAILED, SHOWING LOG ====="
+            tail -n 100 build_log.txt
+            exit 1
+          fi
 
       - name: رفع APK
         uses: actions/upload-artifact@v4
         with:
-          name: تطبيق-بن-عبيد
+          name: BinObaid-App
           path: frontend/build/app/outputs/flutter-apk/app-debug.apk
