@@ -1,5 +1,5 @@
 # .github/workflows/build-apk.yml
-name: بناء تطبيق بن عبيد تلقائياً (Flutter)
+name: بناء تطبيق بن عبيد (إعادة إنشاء android)
 
 on:
   push:
@@ -11,43 +11,33 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: جلب الكود من المستودع
+      - name: جلب الكود
         uses: actions/checkout@v4
 
-      - name: إعداد بيئة جافا
+      - name: إعداد Java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: إعداد بيئة Flutter
+      - name: إعداد Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.22.0'
-          channel: 'stable'
 
-      - name: التحقق من وجود مجلد frontend
-        run: |
-          if [ ! -d "frontend" ]; then
-            echo "❌ مجلد frontend غير موجود!"
-            exit 1
-          fi
-          if [ ! -f "frontend/pubspec.yaml" ]; then
-            echo "❌ ملف pubspec.yaml غير موجود في frontend!"
-            exit 1
-          fi
-
-      - name: تثبيت التبعيات
+      - name: حذف android القديم وإعادة إنشائه
         run: |
           cd frontend
+          rm -rf android
+          flutter create --platforms=android .
           flutter pub get
 
-      - name: بناء ملف APK (مع تجاوز مشكلة v1 embedding)
+      - name: بناء APK
         run: |
           cd frontend
-          flutter build apk --debug --target-platform android-arm,android-arm64
+          flutter build apk --debug
 
-      - name: رفع ملف APK
+      - name: رفع APK
         uses: actions/upload-artifact@v4
         with:
           name: تطبيق-بن-عبيد
