@@ -1,4 +1,4 @@
-name: بناء تطبيق بن عبيد (إنشاء جديد)
+name: تشخيص خطأ البناء
 
 on:
   push:
@@ -10,45 +10,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
-
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.22.0'
-
-      - name: إنشاء مشروع Flutter جديد ونسخ المصادر
+      - name: محاولة بناء مع logging كامل
         run: |
-          # إنشاء مشروع جديد
-          flutter create --platforms=android --org com.binobaid temp_project
-          cd temp_project
-          
-          # حذف lib و pubspec.yaml الأصليين
-          rm -rf lib pubspec.yaml
-          
-          # نسخ مصادر المشروع الحقيقي من frontend
-          cp -r ../frontend/lib .
-          cp ../frontend/pubspec.yaml .
-          
-          # نسخ مجلد assets إذا كان موجوداً
-          if [ -d "../frontend/assets" ]; then cp -r ../frontend/assets .; fi
-          if [ -d "../frontend/images" ]; then cp -r ../frontend/images .; fi
-          
-          # تثبيت التبعيات
+          cd frontend
           flutter pub get
-
-      - name: بناء APK
-        run: |
-          cd temp_project
-          flutter build apk --debug
-
-      - name: رفع APK
+          flutter build apk --debug --verbose 2>&1 | tee build_log.txt
+          # إذا فشل، نعرض آخر 200 سطر
+          if [ $? -ne 0 ]; then
+            echo "===== FAILED, LAST 200 LINES ====="
+            tail -n 200 build_log.txt
+            exit 1
+          fi
+      - name: رفع سجل البناء
         uses: actions/upload-artifact@v4
+        if: failure()
         with:
-          name: تطبيق-بن-عبيد
-          path: temp_project/build/app/outputs/flutter-apk/app-debug.apk
+          name: build-log
+          path: frontend/build_log.txt
