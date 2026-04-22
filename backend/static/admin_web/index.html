@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>تسجيل الدخول - بن عبيد التجارية</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Cairo',sans-serif}
+        body{background:linear-gradient(135deg,#0f2b3d 0%,#1b4f6e 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+        .login-card{max-width:450px;width:100%;background:#fff;border-radius:32px;box-shadow:0 20px 35px rgba(0,0,0,0.2);overflow:hidden}
+        .login-header{background:linear-gradient(120deg,#1e5a7a,#0f3b4f);padding:30px 20px;text-align:center;color:#fff}
+        .login-header h1{font-size:1.8rem;font-weight:700;margin-bottom:8px}
+        .login-header p{font-size:.9rem;opacity:.85}
+        .role-tabs{display:flex;background:#f0f2f5;border-radius:50px;margin:20px 20px 0 20px;padding:5px}
+        .role-tab{flex:1;text-align:center;padding:10px 0;border-radius:40px;font-weight:600;cursor:pointer;color:#4a5568}
+        .role-tab.active{background:#2c7da0;color:#fff;box-shadow:0 2px 8px rgba(44,125,160,0.3)}
+        .login-body{padding:20px 25px 30px}
+        .input-group-custom{position:relative;margin-bottom:20px}
+        .input-group-custom i{position:absolute;right:15px;top:50%;transform:translateY(-50%);color:#9aa7b5}
+        .input-group-custom input{width:100%;padding:14px 45px 14px 15px;border:1px solid #e2e8f0;border-radius:30px;background:#f8fafc}
+        .input-group-custom input:focus{outline:none;border-color:#2c7da0;box-shadow:0 0 0 3px rgba(44,125,160,0.2);background:#fff}
+        .password-toggle{position:absolute;left:15px;top:50%;transform:translateY(-50%);cursor:pointer;color:#9aa7b5}
+        .btn-login{background:linear-gradient(95deg,#2c7da0,#1f5e7a);border:none;border-radius:40px;padding:14px;font-weight:700;width:100%;color:#fff;margin-bottom:15px}
+        .forgot-link{text-align:left;margin:-10px 0 20px}
+        .forgot-link a{color:#2c7da0;text-decoration:none;font-size:.85rem}
+        .create-account{text-align:center;margin-top:15px}
+        .create-account a{color:#2c7da0;font-weight:600;text-decoration:none}
+        .footer-note{text-align:center;font-size:.7rem;color:#94a3b8;margin-top:20px}
+        .toast-container{position:fixed;top:20px;left:20px;z-index:9999}
+        .toast{min-width:250px;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.15)}
+    </style>
+</head>
+<body>
+<div class="login-card">
+    <div class="login-header"><h1>مرحباً بك في بن عبيد التجارية</h1><p>قم بتسجيل الدخول</p></div>
+    <div class="role-tabs"><div class="role-tab active" data-role="customer">عميل</div><div class="role-tab" data-role="agent">وكيل</div></div>
+    <div class="login-body">
+        <form id="loginForm">
+            <div class="input-group-custom"><i class="fas fa-phone-alt"></i><input type="tel" id="phone" placeholder="رقم الموبيل" required pattern="[0-9]{9}" maxlength="9" value="770491653"></div>
+            <div class="input-group-custom"><i class="fas fa-lock"></i><input type="password" id="password" placeholder="كلمة المرور" required><i class="fas fa-eye-slash password-toggle" onclick="togglePassword()"></i></div>
+            <div class="forgot-link"><a href="#" id="forgotPasswordLink">هل نسيت كلمة السر؟</a></div>
+            <button type="submit" class="btn-login"><i class="fas fa-sign-in-alt me-2"></i> تسجيل الدخول</button>
+        </form>
+        <div class="create-account"><span>لا تمتلك حساب؟ </span><a href="register.html">إنشاء حساب</a></div>
+        <div class="footer-note"><i class="fas fa-shield-alt"></i> بيئة آمنة ومحمية</div>
+    </div>
+</div>
+<div class="toast-container"></div>
+
+<!-- مودال طلب إعادة تعيين كلمة المرور -->
+<div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">إعادة تعيين كلمة المرور</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button></div>
+            <div class="modal-body">
+                <p>أدخل رقم هاتفك المسجل، وسيتم إرسال طلب إلى المسؤول لإعادة تعيين كلمة المرور.</p>
+                <input type="tel" id="resetPhone" class="form-control" placeholder="رقم الهاتف" pattern="[0-9]{9}" maxlength="9">
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button><button type="button" class="btn btn-primary" id="sendResetRequestBtn">إرسال الطلب</button></div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    let selectedRole = 'customer';
+    document.querySelectorAll('.role-tab').forEach(t => t.addEventListener('click', function() { document.querySelectorAll('.role-tab').forEach(r => r.classList.remove('active')); this.classList.add('active'); selectedRole = this.getAttribute('data-role'); }));
+
+    function togglePassword() { const pwd = document.getElementById('password'); const icon = document.querySelector('.password-toggle'); if (pwd.type === 'password') { pwd.type = 'text'; icon.classList.remove('fa-eye-slash'); icon.classList.add('fa-eye'); } else { pwd.type = 'password'; icon.classList.remove('fa-eye'); icon.classList.add('fa-eye-slash'); } }
+
+    function showToast(message, type='success') { const container = document.querySelector('.toast-container'); const id = 'toast-'+Date.now(); const bg = type==='success'?'bg-success':(type==='danger'?'bg-danger':'bg-warning'); const icon = type==='success'?'fa-check-circle':(type==='danger'?'fa-exclamation-circle':'fa-info-circle'); const txt = type==='success'?'نجاح':(type==='danger'?'خطأ':'تنبيه'); const html = `<div id="${id}" class="toast ${bg} text-white" role="alert" data-bs-autohide="true" data-bs-delay="4000"><div class="toast-header ${bg} text-white"><i class="fas ${icon} me-2"></i><strong class="me-auto">${txt}</strong><button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button></div><div class="toast-body">${message}</div></div>`; container.insertAdjacentHTML('beforeend', html); const el = document.getElementById(id); new bootstrap.Toast(el, { delay: 4000 }).show(); el.addEventListener('hidden.bs.toast', () => el.remove()); }
+
+    async function loginAdmin(identifier, password, isPhone) { const endpoint = isPhone ? '/api/auth/login-with-phone' : '/api/auth/login'; const body = isPhone ? { phone: identifier, password } : { email: identifier, password }; const res = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); const data = await res.json(); if (res.ok && data.user && data.user.role === 'admin') { localStorage.setItem('admin_token', data.access_token); return true; } return false; }
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => { e.preventDefault(); const phone = document.getElementById('phone').value.trim(); const pwd = document.getElementById('password').value; if (!phone || !pwd) { showToast('الرجاء إدخال رقم الهاتف وكلمة المرور', 'danger'); return; } const btn = document.querySelector('.btn-login'); const orig = btn.innerHTML; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الدخول...'; btn.disabled = true; try { const success = await loginAdmin(phone, pwd, true); if (success) { window.location.href = 'dashboard.html'; } else { showToast('رقم الهاتف أو كلمة المرور غير صحيحة', 'danger'); } } catch(err) { showToast('حدث خطأ في الاتصال بالخادم', 'danger'); } finally { btn.innerHTML = orig; btn.disabled = false; } });
+
+    const forgotLink = document.getElementById('forgotPasswordLink');
+    const resetModal = new bootstrap.Modal(document.getElementById('resetPasswordModal'));
+    forgotLink.addEventListener('click', (e) => { e.preventDefault(); showToast('📱 سيتم إرسال طلب إعادة تعيين كلمة المرور إلى المسؤول', 'info'); resetModal.show(); });
+
+    document.getElementById('sendResetRequestBtn').addEventListener('click', async () => { const phone = document.getElementById('resetPhone').value.trim(); if (!phone || !/^\d{9}$/.test(phone)) { showToast('يرجى إدخال رقم هاتف صحيح (9 أرقام)', 'danger'); return; } const btn = document.getElementById('sendResetRequestBtn'); const orig = btn.innerHTML; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الإرسال...'; btn.disabled = true; try { const res = await fetch('/api/auth/request-password-reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone }) }); const data = await res.json(); if (res.ok) { showToast('✅ تم إرسال طلب إعادة تعيين كلمة المرور إلى المسؤول. سيتم إعلامك قريباً.', 'success'); resetModal.hide(); document.getElementById('resetPhone').value = ''; } else { showToast(data.error || 'حدث خطأ', 'danger'); } } catch(err) { showToast('حدث خطأ في الاتصال بالخادم', 'danger'); } finally { btn.innerHTML = orig; btn.disabled = false; } });
+</script>
+</body>
+</html>

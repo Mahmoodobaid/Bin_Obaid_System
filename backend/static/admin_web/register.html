@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>إنشاء حساب جديد - بن عبيد التجارية</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Cairo',sans-serif}
+        body{background:linear-gradient(135deg,#0f2b3d 0%,#1b4f6e 100%);min-height:100vh;padding:40px 20px;display:flex;align-items:center;justify-content:center}
+        .register-card{max-width:550px;width:100%;background:#fff;border-radius:32px;box-shadow:0 20px 35px rgba(0,0,0,0.2);overflow:hidden}
+        .register-header{background:linear-gradient(120deg,#1e5a7a,#0f3b4f);padding:25px 20px;text-align:center;color:#fff}
+        .register-header h1{font-size:1.8rem;font-weight:700;margin-bottom:5px}
+        .register-header p{font-size:.9rem;opacity:.85}
+        .register-body{padding:25px 30px 30px}
+        .avatar-upload{display:flex;flex-direction:column;align-items:center;margin-bottom:25px}
+        .avatar-preview{width:100px;height:100px;border-radius:50%;background:#f1f5f9;display:flex;align-items:center;justify-content:center;border:2px dashed #2c7da0;cursor:pointer;overflow:hidden;margin-bottom:8px}
+        .avatar-preview img{width:100%;height:100%;object-fit:cover}
+        .avatar-preview i{font-size:40px;color:#94a3b8}
+        .avatar-label{color:#2c7da0;font-weight:500;cursor:pointer;font-size:.9rem}
+        .input-group-custom{position:relative;margin-bottom:20px}
+        .input-group-custom i{position:absolute;right:15px;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:1.1rem}
+        .input-group-custom input,.input-group-custom textarea{width:100%;padding:12px 45px 12px 15px;border:1px solid #e2e8f0;border-radius:30px;font-size:.95rem;background:#f8fafc}
+        .input-group-custom textarea{border-radius:20px;resize:vertical}
+        .input-group-custom input:focus,.input-group-custom textarea:focus{outline:none;border-color:#2c7da0;box-shadow:0 0 0 3px rgba(44,125,160,0.2);background:#fff}
+        .btn-register{background:linear-gradient(95deg,#2c7da0,#1f5e7a);border:none;border-radius:40px;padding:12px;font-size:1rem;font-weight:700;width:100%;color:#fff;margin:10px 0 15px}
+        .login-link{text-align:center;margin-top:10px}
+        .login-link a{color:#2c7da0;text-decoration:none;font-weight:600}
+        .footer-note{text-align:center;font-size:.7rem;color:#94a3b8;margin-top:20px}
+        .toast-container{position:fixed;top:20px;left:20px;z-index:9999}
+        .toast{min-width:250px;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.15)}
+        @media (max-width:480px){.register-body{padding:20px}}
+    </style>
+</head>
+<body>
+<div class="register-card">
+    <div class="register-header"><h1>إنشاء حساب جديد</h1><p>أهلاً بك في منصة بن عبيد التجارية</p></div>
+    <div class="register-body">
+        <div id="alertMessage" class="alert alert-danger alert-custom" style="display:none"></div>
+        <div id="successMessage" class="alert alert-success alert-custom" style="display:none"></div>
+        <form id="registerForm">
+            <div class="avatar-upload"><div class="avatar-preview" id="avatarPreview" onclick="document.getElementById('imageInput').click()"><i class="fas fa-plus-circle"></i></div><input type="file" id="imageInput" accept="image/*" style="display:none"><span class="avatar-label">صورة العميل</span></div>
+            <div class="input-group-custom"><i class="fas fa-phone-alt"></i><input type="tel" id="phone" placeholder="رقم الموبيل" required pattern="[0-9]{9}" maxlength="9"><small class="text-muted" style="display:block;margin-right:15px">مثال: 770491653 (9 أرقام)</small></div>
+            <div class="input-group-custom"><i class="fas fa-user"></i><input type="text" id="fullName" placeholder="اسم العميل" required></div>
+            <div class="input-group-custom"><i class="fas fa-briefcase"></i><input type="text" id="occupation" placeholder="مهنة العميل"></div>
+            <div class="input-group-custom"><i class="fas fa-map-marker-alt"></i><textarea id="address" rows="2" placeholder="عنوان العميل"></textarea></div>
+            <button type="submit" class="btn btn-register" id="submitBtn"><i class="fas fa-user-plus me-2"></i> إنشاء حساب</button>
+        </form>
+        <div class="login-link"><span>لديك حساب بالفعل؟ </span><a href="index.html">تسجيل الدخول</a></div>
+        <div class="footer-note"><i class="fas fa-shield-alt"></i> بيئة آمنة ومحمية</div>
+    </div>
+</div>
+<div class="toast-container"></div>
+<script>
+    document.getElementById('imageInput').addEventListener('change',function(e){const f=e.target.files[0];if(f){const r=new FileReader();r.onload=function(ev){document.getElementById('avatarPreview').innerHTML='<img src="'+ev.target.result+'" alt="صورة العميل">'};r.readAsDataURL(f)}});
+    function showToast(message, type='success'){const c=document.querySelector('.toast-container');const id='toast-'+Date.now();const bg=type==='success'?'bg-success':(type==='danger'?'bg-danger':'bg-warning');const icon=type==='success'?'fa-check-circle':(type==='danger'?'fa-exclamation-circle':'fa-info-circle');const txt=type==='success'?'نجاح':(type==='danger'?'خطأ':'تنبيه');const html=`<div id="${id}" class="toast ${bg} text-white" role="alert" data-bs-autohide="true" data-bs-delay="4000"><div class="toast-header ${bg} text-white"><i class="fas ${icon} me-2"></i><strong class="me-auto">${txt}</strong><button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button></div><div class="toast-body">${message}</div></div>`;c.insertAdjacentHTML('beforeend',html);const el=document.getElementById(id);new bootstrap.Toast(el,{delay:4000}).show();el.addEventListener('hidden.bs.toast',()=>el.remove());}
+    async function checkUserExists(phone){try{const r=await fetch('/api/users/check?phone='+encodeURIComponent(phone));const d=await r.json();return d.exists}catch(e){return false}}
+    async function uploadImage(f){return new Promise((resolve)=>{if(!f)resolve(null);const r=new FileReader();r.onload=(e)=>resolve(e.target.result);r.readAsDataURL(f)})}
+    async function submitRegistration(d){const r=await fetch('/api/auth/register-request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});return r.json()}
+    document.getElementById('registerForm').addEventListener('submit',async(e)=>{e.preventDefault();const phone=document.getElementById('phone').value.trim(),fullName=document.getElementById('fullName').value.trim(),occupation=document.getElementById('occupation').value.trim(),address=document.getElementById('address').value.trim(),imgFile=document.getElementById('imageInput').files[0];if(!phone||!fullName){showToast('يرجى إدخال رقم الهاتف والاسم الكامل','danger');return}if(!/^\d{9}$/.test(phone)){showToast('رقم الهاتف يجب أن يكون 9 أرقام','danger');return}const exists=await checkUserExists(phone);if(exists){showToast('هذا الحساب موجود مسبقاً. يرجى تسجيل الدخول أو استخدام رقم آخر.','danger');return}let imgBase64=null;if(imgFile)imgBase64=await uploadImage(imgFile);const btn=document.getElementById('submitBtn'),orig=btn.innerHTML;btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> جاري الإرسال...';btn.disabled=true;try{const res=await submitRegistration({phone,full_name:fullName,occupation,address,image_url:imgBase64});if(res.success){showToast('✅ تم حفظ بياناتك بنجاح. سيتم مراجعة طلبك وإعلامك عبر رسالة نصية عند الموافقة. شكراً لتسجيلك في بن عبيد التجارية.','success');document.getElementById('registerForm').reset();document.getElementById('avatarPreview').innerHTML='<i class="fas fa-plus-circle"></i>'}else{showToast(res.error||'حدث خطأ أثناء إرسال الطلب','danger')}}catch(err){console.error(err);showToast('حدث خطأ في الاتصال بالخادم','danger')}finally{btn.innerHTML=orig;btn.disabled=false}});
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

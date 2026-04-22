@@ -1,0 +1,332 @@
+# =====================================================
+# products_api.py - إدارة المنتجات (CRUD واستيراد Excel)
+# الإصدار 2.0 - مع دعم التصفية والبحث والترقيم
+# =====================================================
+
+import logging
+from flask import Blueprint, request, jsonify
+from decorators import login_required, role_required
+from models import ProductModel, SettingsModel, ImageModel
+from excel_handler import process_excel, validate_excel_columns
+
+logger = logging.getLogger(__name__)
+products_bp = Blueprint('products', __name__)
+
+
+# ===================== جلب المنتجات (عام) =====================
+
+@products_bp.route('/products', methods=['GET'])
+def get_products():
+    """
+    جلب قائمة المنتجات (عام، لا يحتاج مصادقة)
+    يدعم: limit, offset, category, search
+    """
+    try:
+        limit = request.args.get('limit', 50, type=int)
+        offset = request.args.get('offset', 0, type=int)
+        category = request.args.get('category', None)
+        search = request.args.get('search', None)
+        
+        products = ProductModel.get_all(limit, offset, category, search)
+        total = ProductModel.count_all(category, search)
+        
+        # إضافة أول صورة لكل منتج (للعرض السريع)
+        for product in products:
+            images = ImageModel.get_images(product['sku'])
+            product['first_image'] = images[0]['image_url'] if images else None
+            product['image_count'] = len(images)
+        
+        return jsonify({
+            'products': products,
+            'total': total,
+            'limit': limit,
+            'offset': offset,
+            'has_more': offset + limit < total
+        }), 200
+    except Exception as e:
+        logger.error(f"❌ Error in get_products: {str(e)}")
+        return jsonify({'error': 'حدث خطأ أثناء جلب المنتجات'}), 500
+
+
+@products_bp.route('/products/<sku>', methods=['GET'])
+def get_product(sku):
+    """
+    جلب منتج محدد بواسطة SKU (مع جميع صوره)
+    """
+    try:
+        product = ProductModel.get_by_sku(sku)
+        if not product:
+            return jsonify({'error': 'المنتج غير موجود'}), 404
+        
+        # جلب الصور
+        images = ImageModel.get_images(sku)
+        product['images'] = [img['image_url'] for img in images]
+        product['image_count'] = len(images)
+        
+        return jsonify(product), 200
+    except Exception as e:
+        logger.error(f"❌ Error in get_product: {str(e)}")
+        return jsonify({'error': 'حدث خطأ أثناء جلب المنتج'}), 500
+
+
+@products_bp.route('/products/batch', methods=['POST'])
+def get_products_batch():
+    """
+    جلب عدة منتجات دفعة واحدة (بواسطة قائمة SKU)
+    الجسم: {"skus": ["SKU1", "SKU2", ...]}
+    """
+    try:
+        data = request.json
+        skus = data.get('skus', [])
+        
+        if not skus:
+            return jsonify({'error': 'قائمة SKU مطلوبة'}), 400
+        
+        products = []
+        for sku in skus:
+            product = ProductModel.get_by_sku(sku)
+            if product:
+                images = ImageModel.get_images(sku)
+                product['first_image'] = images[0]['image_url'] if images else None
+                products.append(product)
+        
+        return jsonify({'products': products}), 200
+    except Exception as e:
+        logger.error(f"❌ Error in get_products_batch: {str(e)}")
+        return jsonify({'error': 'حدث خطأ أثناء جلب المنتجات'}), 500
+
+
+# ===================== إدارة المنتجات (للمسؤول) =====================
+
+@products_bp.route('/products', methods=['POST'])
+@login_required
+@role_required(['admin'])
+def create_product():
+    """
+    إنشاء منتج جديد (للمسؤول فقط)
+    الجسم: {"sku": "OB-001", "name": "منتج", "unit_price": 10.5, ...}
+    """
+    try:
+        data = request.json
+        required_fields = ['sku', 'name', 'unit_price']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({'error': f'حقل {field} مطلوب'}), 400
+        
+        # التحقق من عدم وجود المنتج مسبقاً
+        existing = ProductModel.get_by_sku(data['sku'])
+        if existing:
+            return jsonify({'error': 'منتج بنفس SKU موجود مسبقاً'}), 409
+        
+        product = ProductModel.create_or_update(data)
+        
+        # تسجيل الحدث
+        from models import LogModel
+        LogModel.create(request.user['user_id'], f'إنشاء منتج جديد {data["sku"]}', request.remote_addr)
+        
+        return jsonify(product), 201
+    except Exception as e:
+        logger.error(f"❌ Error in create_product: {str(e)}")
+        return jsonify({'error': 'حدث خطأ أثناء إنشاء المنتج'}), 500
+
+
+@products_bp.route('/products/<sku>', methods=['PUT'])
+@login_required
+@role_required(['admin'])
+def update_product(sku):
+    """
+    تحديث منتج موجود
+    الجسم: {"name": "اسم جديد", "unit_price": 20.0, ...}
+    """
+    try:
+        data = request.json
+        existing = ProductModel.get_by_sku(sku)
+        if not existing:
+            return jsonify({'error': 'المنتج غير موجود'}), 404
+        
+        updated = ProductModel.update(sku, data)
+        if updated:
+            from models import LogModel
+            LogModel.create(request.user['user_id'], f'تحديث منتج {sku}', request.remote_addr)
+            return jsonify({'message': 'تم تحديث المنتج بنجاح'}), 200
+        
+        return jsonify({'error': 'فشل تحديث المنتج'}), 500
+    except Exception as e:
+        logger.error(f"❌ Error in update_product: {str(e)}")
+        return jsonify({'error': 'حدث خطأ أثناء تحديث المنتج'}), 500
+
+
+@products_bp.route('/products/<sku>', methods=['DELETE'])
+@login_required
+@role_required(['admin'])
+def delete_product(sku):
+    """
+    حذف منتج (بما في ذلك صوره وعروض الأسعار المرتبطة)
+    """
+    try:
+        existing = ProductModel.get_by_sku(sku)
+        if not existing:
+            return jsonify({'error': 'المنتج غير موجود'}), 404
+        
+        # حذف الصور أولاً
+        ImageModel.delete_all_images(sku)
+        
+        # حذف المنتج
+        deleted = ProductModel.delete(sku)
+        if deleted:
+            from models import LogModel
+            LogModel.create(request.user['user_id'], f'حذف منتج {sku}', request.remote_addr)
+            return jsonify({'message': 'تم حذف المنتج بنجاح'}), 200
+        
+        return jsonify({'error': 'فشل حذف المنتج'}), 500
+    except Exception as e:
+        logger.error(f"❌ Error in delete_product: {str(e)}")
+        return jsonify({'error': 'حدث خطأ أثناء حذف المنتج'}), 500
+
+
+# ===================== استيراد وتصدير Excel =====================
+
+@products_bp.route('/products/upload-excel', methods=['POST'])
+@login_required
+@role_required(['admin'])
+def upload_excel():
+    """
+    رفع ملف Excel لتحديث المخزون
+    يدعم: .xlsx, .xls
+    """
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'لم يتم إرسال أي ملف'}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'الملف فارغ'}), 400
+        
+        if not file.filename.endswith(('.xlsx', '.xls')):
+            return jsonify({'error': 'الملف يجب أن يكون بصيغة Excel (.xlsx أو .xls)'}), 400
+        
+        # معالجة الملف
+        result = process_excel(file)
+        
+        # تسجيل الحدث
+        from models import LogModel
+        LogModel.create(
+            request.user['user_id'],
+            f'استيراد Excel: {result["inserted"]} جديد، {result["updated"]} تحديث، {result["skipped"]} تخطي',
+            request.remote_addr
+        )
+        
+        return jsonify({
+            'message': f'تمت معالجة الملف بنجاح',
+            'inserted': result['inserted'],
+            'updated': result['updated'],
+            'skipped': result['skipped'],
+            'total': result['total'],
+            'errors': result['errors'] if result['errors'] else None
+        }), 200
+        
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        logger.error(f"❌ Error in upload_excel: {str(e)}")
+        return jsonify({'error': 'حدث خطأ أثناء معالجة الملف'}), 500
+
+
+@products_bp.route('/products/validate-excel', methods=['POST'])
+@login_required
+@role_required(['admin'])
+def validate_excel():
+    """
+    التحقق من صحة ملف Excel دون معالجته (للمعاينة)
+    """
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'لم يتم إرسال أي ملف'}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'الملف فارغ'}), 400
+        
+        result = validate_excel_columns(file)
+        return jsonify(result), 200
+        
+    except Exception as e:
+        logger.error(f"❌ Error in validate_excel: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+@products_bp.route('/products/export', methods=['GET'])
+@login_required
+@role_required(['admin'])
+def export_products():
+    """
+    تصدير جميع المنتجات إلى ملف Excel
+    """
+    try:
+        from excel_handler import export_products_to_excel
+        from flask import send_file
+        import io
+        
+        excel_data = export_products_to_excel()
+        
+        return send_file(
+            io.BytesIO(excel_data),
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name='products_export.xlsx'
+        )
+        
+    except Exception as e:
+        logger.error(f"❌ Error in export_products: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+# ===================== الفئات والمرشحات =====================
+
+@products_bp.route('/products/categories', methods=['GET'])
+def get_categories():
+    """
+    جلب قائمة الفئات المتاحة (للتصفية)
+    """
+    try:
+        categories = ProductModel.get_categories()
+        return jsonify({'categories': categories}), 200
+    except Exception as e:
+        logger.error(f"❌ Error in get_categories: {str(e)}")
+        return jsonify({'error': 'حدث خطأ'}), 500
+
+
+@products_bp.route('/products/search', methods=['GET'])
+def search_products():
+    """
+    البحث السريع في المنتجات (مخصص لشريط البحث)
+    """
+    try:
+        query = request.args.get('q', '')
+        limit = request.args.get('limit', 10, type=int)
+        
+        if not query or len(query) < 2:
+            return jsonify({'products': [], 'total': 0}), 200
+        
+        products = ProductModel.get_all(limit=limit, offset=0, search=query)
+        
+        # تبسيط البيانات للبحث السريع
+        results = []
+        for p in products:
+            images = ImageModel.get_images(p['sku'])
+            results.append({
+                'sku': p['sku'],
+                'name': p['name'],
+                'unit_price': p['unit_price'],
+                'image': images[0]['image_url'] if images else None
+            })
+        
+        return jsonify({
+            'products': results,
+            'total': len(results),
+            'query': query
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"❌ Error in search_products: {str(e)}")
+        return jsonify({'error': 'حدث خطأ أثناء البحث'}), 500

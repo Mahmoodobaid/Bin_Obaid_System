@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>محلات بن عيد التجارية | إنشاء حساب جديد</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background: linear-gradient(145deg, #eef2f7 0%, #d9e2ec 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1.5rem;
+            direction: rtl;
+        }
+
+        /* card container */
+        .signup-card {
+            background: #ffffff;
+            border-radius: 2rem;
+            box-shadow: 0 25px 45px -12px rgba(0, 0, 0, 0.25), 0 4px 12px rgba(0, 0, 0, 0.05);
+            width: 100%;
+            max-width: 550px;
+            padding: 2rem 2rem 2rem 2rem;
+            transition: all 0.2s ease;
+            border: 1px solid rgba(255, 255, 255, 0.6);
+        }
+
+        h1 {
+            font-size: 1.9rem;
+            font-weight: 800;
+            color: #1e2f3e;
+            text-align: center;
+            margin-bottom: 1.8rem;
+            letter-spacing: -0.3px;
+        }
+        h1 span {
+            color: #2c3e66;
+        }
+
+        /* profile image upload area */
+        .image-upload-section {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 1.8rem;
+        }
+        .avatar-wrapper {
+            position: relative;
+            width: 110px;
+            height: 110px;
+            border-radius: 50%;
+            overflow: hidden;
+            box-shadow: 0 12px 20px -8px rgba(0, 0, 0, 0.2);
+            background: #f1f5f9;
+            border: 3px solid white;
+            transition: 0.2s;
+        }
+        .avatar-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .avatar-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #eef2fa;
+            color: #8ba0bc;
+            font-size: 3rem;
+            flex-direction: column;
+        }
+        .avatar-placeholder i {
+            font-size: 3rem;
+        }
+        .upload-btn {
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            background: #1e3a5f;
+            border-radius: 50%;
+            width: 34px;
+            height: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: white;
+            border: 2px solid white;
+            transition: 0.2s;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+        .upload-btn:hover {
+            background: #0f2b46;
+            transform: scale(1.05);
+        }
+        .upload-btn i {
+            font-size: 1rem;
+        }
+        #customerImage {
+            display: none;
+        }
+
+        /* input groups */
+        .input-group {
+            margin-bottom: 1.4rem;
+        }
+        .input-group label {
+            display: block;
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #2c3e50;
+            margin-bottom: 0.4rem;
+            padding-right: 0.2rem;
+        }
+        .input-group label i {
+            margin-left: 6px;
+            color: #2c3e66;
+        }
+        .input-group input, .input-group textarea {
+            width: 100%;
+            padding: 0.9rem 1rem;
+            font-size: 1rem;
+            font-family: 'Tajawal', sans-serif;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 1.2rem;
+            background: #fefefe;
+            transition: all 0.2s;
+            outline: none;
+            color: #1a2c3e;
+        }
+        .input-group input:focus, .input-group textarea:focus {
+            border-color: #2c3e66;
+            box-shadow: 0 0 0 3px rgba(44, 62, 102, 0.15);
+        }
+        .input-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        /* small hint for phone */
+        .hint-text {
+            font-size: 0.7rem;
+            color: #7c8b9f;
+            margin-top: 0.3rem;
+            margin-right: 0.5rem;
+        }
+
+        /* create account button */
+        .create-btn {
+            width: 100%;
+            background: #1e3a5f;
+            border: none;
+            padding: 0.9rem;
+            font-size: 1.1rem;
+            font-weight: 700;
+            font-family: 'Tajawal', sans-serif;
+            color: white;
+            border-radius: 2rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 0.5rem;
+            margin-bottom: 1.2rem;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+        }
+        .create-btn:hover {
+            background: #0f2b46;
+            transform: translateY(-2px);
+            box-shadow: 0 12px 20px -8px rgba(30, 58, 95, 0.3);
+        }
+
+        /* login link */
+        .login-link {
+            text-align: center;
+            font-size: 0.95rem;
+            color: #4b5565;
+        }
+        .login-link a {
+            color: #1e3a5f;
+            font-weight: 700;
+            text-decoration: none;
+            border-bottom: 1.5px dashed #b9c8e8;
+            transition: 0.2s;
+        }
+        .login-link a:hover {
+            color: #0f2b46;
+            border-bottom-color: #1e3a5f;
+        }
+
+        /* toast / notification */
+        .toast-message {
+            position: fixed;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: #1e2f3e;
+            color: white;
+            padding: 0.8rem 1.8rem;
+            border-radius: 3rem;
+            font-weight: 500;
+            font-size: 0.9rem;
+            z-index: 1100;
+            opacity: 0;
+            transition: opacity 0.2s, transform 0.2s;
+            pointer-events: none;
+            white-space: nowrap;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            font-family: 'Tajawal', sans-serif;
+        }
+        .toast-message.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+        @media (max-width: 550px) {
+            .signup-card {
+                padding: 1.5rem;
+            }
+            h1 {
+                font-size: 1.6rem;
+            }
+            .toast-message {
+                white-space: normal;
+                width: 85%;
+                text-align: center;
+            }
+        }
+
+        /* extra micro-interactions */
+        .upload-btn:active {
+            transform: scale(0.96);
+        }
+        .avatar-wrapper:hover {
+            box-shadow: 0 15px 25px -10px rgba(0, 0, 0, 0.25);
+        }
+    </style>
+</head>
+<body>
+
+<div class="signup-card">
+    <h1>إنشاء حساب جديد <span>✨</span></h1>
+
+    <!-- صورة العميل مع زر + -->
+    <div class="image-upload-section">
+        <div class="avatar-wrapper" id="avatarWrapper">
+            <div class="avatar-placeholder" id="avatarPlaceholder">
+                <i class="fas fa-user-circle"></i>
+            </div>
+            <img id="profileImage" src="" alt="صورة العميل" style="display: none;">
+            <label for="customerImage" class="upload-btn">
+                <i class="fas fa-plus"></i>
+            </label>
+            <input type="file" id="customerImage" accept="image/*">
+        </div>
+    </div>
+
+    <!-- نموذج البيانات -->
+    <form id="signupForm" action="javascript:void(0);">
+        <div class="input-group">
+            <label><i class="fas fa-mobile-alt"></i> رقم الموبيل</label>
+            <input type="tel" id="mobile" placeholder="7**********" value="7**********">
+            <div class="hint-text">مثال: 771234567 أو 733456789</div>
+        </div>
+
+        <div class="input-group">
+            <label><i class="fas fa-user"></i> اسم العميل</label>
+            <input type="text" id="customerName" placeholder="أدخل الاسم الثلاثي" value="أحمد خالد علي">
+        </div>
+
+        <div class="input-group">
+            <label><i class="fas fa-briefcase"></i> مهنة العميل</label>
+            <input type="text" id="job" placeholder="المهنة" value="مهندس برمجيات">
+        </div>
+
+        <div class="input-group">
+            <label><i class="fas fa-map-marker-alt"></i> عنوان العميل</label>
+            <textarea id="address" placeholder="العنوان بالتفصيل">صناعة، حي حده</textarea>
+        </div>
+
+        <button type="submit" class="create-btn">إنشاء حساب</button>
+    </form>
+
+    <div class="login-link">
+        لديك حساب بالفعل؟ <a href="#" id="goToLogin">تسجيل الدخول</a>
+    </div>
+</div>
+
+<!-- Toast message -->
+<div id="toastMsg" class="toast-message">✨ تم إنشاء الحساب بنجاح! مرحباً بك</div>
+
+<script>
+    (function() {
+        // DOM elements
+        const avatarWrapper = document.getElementById('avatarWrapper');
+        const avatarPlaceholder = document.getElementById('avatarPlaceholder');
+        const profileImg = document.getElementById('profileImage');
+        const fileInput = document.getElementById('customerImage');
+        const signupForm = document.getElementById('signupForm');
+        const mobileInput = document.getElementById('mobile');
+        const nameInput = document.getElementById('customerName');
+        const jobInput = document.getElementById('job');
+        const addressInput = document.getElementById('address');
+        const goToLoginBtn = document.getElementById('goToLogin');
+        const toastMsg = document.getElementById('toastMsg');
+
+        // helper toast
+        let toastTimeout;
+        function showToast(message, duration = 2800) {
+            if (toastTimeout) clearTimeout(toastTimeout);
+            toastMsg.textContent = message;
+            toastMsg.classList.add('show');
+            toastTimeout = setTimeout(() => {
+                toastMsg.classList.remove('show');
+            }, duration);
+        }
+
+        // صورة العميل: preview and upload
+        fileInput.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    profileImg.src = e.target.result;
+                    profileImg.style.display = 'block';
+                    avatarPlaceholder.style.display = 'none';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                // reset to placeholder if no file
+                profileImg.style.display = 'none';
+                avatarPlaceholder.style.display = 'flex';
+            }
+        });
+
+        // validate mobile (simple saudi / yemeni style)
+        function isValidMobile(mobile) {
+            const mobileRegex = /^[0-9]{9,10}$/; // basic digits only, 9-10 numbers
+            return mobileRegex.test(mobile);
+        }
+
+        // handle create account
+        function createAccountHandler(e) {
+            e.preventDefault();
+
+            const mobile = mobileInput.value.trim();
+            const fullName = nameInput.value.trim();
+            const job = jobInput.value.trim();
+            const address = addressInput.value.trim();
+
+            // validation
+            if (!mobile) {
+                showToast("📱 الرجاء إدخال رقم الموبيل", 2000);
+                mobileInput.focus();
+                return;
+            }
+            if (!isValidMobile(mobile)) {
+                showToast("⚠️ رقم الموبيل يجب أن يحتوي على 9-10 أرقام فقط", 2500);
+                mobileInput.focus();
+                return;
+            }
+            if (!fullName) {
+                showToast("👤 الرجاء إدخال اسم العميل", 2000);
+                nameInput.focus();
+                return;
+            }
+            if (fullName.length < 3) {
+                showToast("الاسم يجب أن يكون مكوناً من 3 أحرف على الأقل", 2000);
+                nameInput.focus();
+                return;
+            }
+            if (!job) {
+                showToast("💼 الرجاء إدخال المهنة", 2000);
+                jobInput.focus();
+                return;
+            }
+            if (!address) {
+                showToast("🏠 الرجاء إدخال العنوان", 2000);
+                addressInput.focus();
+                return;
+            }
+
+            // if user uploaded image we store the image in localStorage or session (just demo simulation)
+            let imageData = null;
+            if (profileImg.style.display === 'block' && profileImg.src) {
+                imageData = profileImg.src; // base64 for demo purposes
+            }
+
+            // save to localStorage to simulate account creation (for future login)
+            const userAccount = {
+                mobile: mobile,
+                fullName: fullName,
+                job: job,
+                address: address,
+                image: imageData,
+                createdAt: new Date().toISOString()
+            };
+            // store using mobile as unique key (simple)
+            localStorage.setItem(`binobaid_user_${mobile}`, JSON.stringify(userAccount));
+            // also store current signed up user for mock login
+            localStorage.setItem('binobaid_current_user', JSON.stringify(userAccount));
+
+            // success message with animation
+            showToast(`🎉 مرحباً ${fullName}! تم إنشاء حسابك بنجاح`, 2800);
+            
+            // reset form fields? optional but keep values to show success, but user might want to go to login.
+            // after 1 sec, you could redirect or just wait. We'll just show success.
+            setTimeout(() => {
+                // optionally redirect to login page after user clicks "تسجيل الدخول" manually.
+                // but we can also provide a sweet redirect. 
+                // For better UX: ask if they want to login now? Not mandatory.
+            }, 500);
+        }
+
+        signupForm.addEventListener('submit', createAccountHandler);
+
+        // link to login page (assuming we have login.html in same directory)
+        goToLoginBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            // if login.html exists in same folder redirect
+            // otherwise show a toast info.
+            window.location.href = 'login.html';
+        });
+
+        // optional prefill with default image placeholder works fine
+        // add additional interactive flair: drag & drop effect could be bonus but not required.
+        // hover animation on avatar
+        // If user wants to remove image, they can click on file input again and cancel - placeholder reappears.
+        // edge: handle cancel file selection -> if no file, revert to placeholder.
+        window.addEventListener('load', () => {
+            // any preset demo info already in fields (أحمد خالد علي etc.)
+            // no extra action needed
+            console.log('واجهة إنشاء حساب جاهزة وتفاعلية');
+        });
+        
+        // For extra attraction: add a small ripple or focus effect
+        const inputs = [mobileInput, nameInput, jobInput, addressInput];
+        inputs.forEach(inp => {
+            inp.addEventListener('focus', () => {
+                inp.style.borderColor = '#2c3e66';
+            });
+            inp.addEventListener('blur', () => {
+                if (!inp.value.trim()) inp.style.borderColor = '#e2e8f0';
+                else inp.style.borderColor = '#cbd5e1';
+            });
+        });
+        
+        // if the user selects an image and later wants to change, just use the + button again
+        // mobile placeholder formatting
+        mobileInput.addEventListener('input', function(e) {
+            this.value = this.value.replace(/[^0-9]/g, '');
+        });
+    })();
+</script>
+</body>
+</html>

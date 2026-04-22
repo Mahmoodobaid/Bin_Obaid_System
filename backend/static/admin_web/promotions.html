@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة الإعلانات - بن عبيد</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * { font-family: 'Cairo', 'Tahoma', sans-serif; }
+        body { background-color: #f8f9fc; }
+        .sidebar { position: fixed; top: 0; right: 0; height: 100%; width: 280px; background: linear-gradient(135deg, #1e3c72, #2a5298); color: white; padding: 20px; z-index: 1000; }
+        .sidebar .logo { text-align: center; padding: 20px 0; border-bottom: 1px solid rgba(255,255,255,0.2); margin-bottom: 20px; }
+        .sidebar .nav-link { color: rgba(255,255,255,0.8); padding: 12px 15px; border-radius: 10px; display: flex; align-items: center; gap: 12px; text-decoration: none; }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active { background: rgba(255,255,255,0.2); color: white; }
+        .main-content { margin-right: 280px; padding: 20px; }
+        .card { border: none; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .card-header { background: white; border-bottom: 1px solid #e9ecef; padding: 15px 20px; font-weight: bold; border-radius: 15px 15px 0 0; }
+        .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 500; }
+        .status-active { background: #28a745; color: #fff; }
+        .status-inactive { background: #dc3545; color: #fff; }
+        .status-upcoming { background: #ffc107; color: #000; }
+        .status-expired { background: #6c757d; color: #fff; }
+        @media (max-width: 768px) { .sidebar { width: 70px; } .sidebar .logo h3, .sidebar .logo p, .sidebar .nav-link span { display: none; } .sidebar .nav-link { justify-content: center; } .main-content { margin-right: 70px; } }
+    </style>
+</head>
+<body>
+<div class="sidebar">
+    <div class="logo"><h3><i class="fas fa-store"></i> بن عبيد</h3><p>نظام إدارة المخازن</p></div>
+    <nav>
+        <a href="dashboard.html" class="nav-link"><i class="fas fa-tachometer-alt"></i><span>لوحة التحكم</span></a>
+        <a href="products.html" class="nav-link"><i class="fas fa-boxes"></i><span>المنتجات</span></a>
+        <a href="promotions.html" class="nav-link active"><i class="fas fa-tags"></i><span>الإعلانات</span></a>
+        <a href="templates.html" class="nav-link"><i class="fas fa-file-alt"></i><span>النماذج</span></a>
+        <a href="licenses.html" class="nav-link"><i class="fas fa-key"></i><span>التراخيص</span></a>
+        <a href="profile.html" class="nav-link"><i class="fas fa-user-circle"></i><span>الملف الشخصي</span></a>
+        <a href="pending_users.html" class="nav-link"><i class="fas fa-user-plus"></i><span>طلبات التسجيل</span></a>
+        <a href="reset_requests.html" class="nav-link"><i class="fas fa-key"></i><span>طلبات إعادة تعيين كلمة المرور</span></a>
+        <a href="settings.html" class="nav-link"><i class="fas fa-cog"></i><span>الإعدادات</span></a>
+    </nav>
+    <div class="position-absolute bottom-0 start-0 w-100 p-3"><hr style="border-color: rgba(255,255,255,0.2);"><a href="#" onclick="logout()" class="nav-link"><i class="fas fa-sign-out-alt"></i><span>تسجيل خروج</span></a></div>
+</div>
+<div class="main-content">
+    <div class="d-flex justify-content-between align-items-center mb-4"><h2><i class="fas fa-tags"></i> إدارة الإعلانات الترويجية</h2><button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addPromotionModal"><i class="fas fa-plus"></i> إعلان جديد</button></div>
+    <div class="row g-4 mb-4">
+        <div class="col-md-3"><div class="card text-center p-3"><h3 id="totalPromotions">-</h3><p class="text-muted mb-0">إجمالي الإعلانات</p></div></div>
+        <div class="col-md-3"><div class="card text-center p-3"><h3 id="activePromotions">-</h3><p class="text-muted mb-0">نشطة حالياً</p></div></div>
+        <div class="col-md-3"><div class="card text-center p-3"><h3 id="totalClicks">-</h3><p class="text-muted mb-0">إجمالي النقرات</p></div></div>
+        <div class="col-md-3"><div class="card text-center p-3"><h3 id="avgClicks">-</h3><p class="text-muted mb-0">متوسط النقرات</p></div></div>
+    </div>
+    <div class="card"><div class="card-header"><i class="fas fa-list"></i> قائمة الإعلانات</div><div class="card-body p-0"><div class="table-responsive"><table class="table table-hover mb-0"><thead class="table-light"><tr><th>العنوان</th><th>الحالة</th><th>تاريخ البدء</th><th>تاريخ الانتهاء</th><th>النقرات</th><th>الإجراءات</th></tr></thead><tbody id="promotionsTable"><tr><td colspan="6" class="text-center">جاري التحميل...<\/td><\/tr><\/tbody><\/table><\/div><\/div><\/div>
+<\/div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"><\/script>
+<script src="js/auth.js"><\/script>
+<script>
+    async function loadPromotions() {
+        try {
+            const stats = await apiRequest('\/admin\/promotions\/stats');
+            document.getElementById('totalPromotions').innerText = stats.total_promotions || 0;
+            document.getElementById('activePromotions').innerText = stats.active_promotions || 0;
+            document.getElementById('totalClicks').innerText = stats.total_clicks || 0;
+            document.getElementById('avgClicks').innerText = stats.average_clicks_per_promo || 0;
+            const tbody = document.getElementById('promotionsTable');
+            if (!stats.promotions || stats.promotions.length === 0) { tbody.innerHTML = '<tr><td colspan="6" class="text-center">لا توجد إعلانات<\/td><\/tr>'; return; }
+            tbody.innerHTML = stats.promotions.map(p => {
+                let statusClass = 'status-inactive', statusText = 'غير نشط';
+                const now = new Date().toISOString();
+                if (p.is_active) {
+                    if (p.start_date && p.start_date > now) { statusClass = 'status-upcoming'; statusText = 'قادم'; }
+                    else if (p.end_date && p.end_date < now) { statusClass = 'status-expired'; statusText = 'منتهي'; }
+                    else { statusClass = 'status-active'; statusText = 'نشط'; }
+                }
+                return `<tr><td>${p.title}<\/td><td><span class="status-badge ${statusClass}">${statusText}<\/span><\/td><td>${p.start_date ? new Date(p.start_date).toLocaleDateString('ar') : '-'}<\/td><td>${p.end_date ? new Date(p.end_date).toLocaleDateString('ar') : '-'}<\/td><td>${p.click_count || 0}<\/td><td><button class="btn btn-sm btn-danger" onclick="deletePromotion(${p.id})">حذف<\/button><\/td><\/tr>`;
+            }).join('');
+        } catch(e) { console.error(e); }
+    }
+    async function deletePromotion(id) { if(confirm('هل أنت متأكد؟')){ await apiRequest(`\/admin\/promotions\/${id}`, 'DELETE'); loadPromotions(); } }
+    function logout() { localStorage.removeItem('admin_token'); window.location.href = 'index.html'; }
+    window.onload = () => { if (!localStorage.getItem('admin_token')) window.location.href = 'index.html'; else loadPromotions(); };
+<\/script>
+<\/body>
+<\/html>
